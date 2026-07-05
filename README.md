@@ -7,8 +7,8 @@
 > **knowledge có cấu trúc, tìm kiếm được**, để Claude & ChatGPT truy cập qua
 > MCP/REST từ bất kỳ client nào.
 
-`wikiAgent` là **trung tâm kết hợp nhiều giải pháp (multi-source)**: nó gom
-knowledge từ nhiều nguồn khác nhau vào **một** collection Qdrant duy nhất
+`wikiAgent` là **trung tâm kết hợp nhiều nguồn (multi-source)**: nó gom
+knowledge từ 3 nguồn khác nhau vào **một** collection Qdrant duy nhất
 (`wiki_knowledge`) và phục vụ mọi AI client qua một API thống nhất. Thiết kế để
 đứng cạnh [`agentMem0`](https://github.com/vanbienperu3107/agentMem0) và **dùng
 lại Qdrant + API keys sẵn có — không thêm datastore, không thêm service.**
@@ -117,23 +117,21 @@ curl -s "localhost:8010/wiki/search?q=OCS%20charge&limit=3" \
 
 ---
 
-## Hệ sinh thái — các dự án kết hợp
+## Hệ sinh thái — 3 dự án con
 
-`wikiAgent` là điểm hội tụ của nhiều dự án trong tài khoản. Mỗi dự án đóng một
-vai trò trong pipeline knowledge:
+`wikiAgent` là điểm hội tụ của 3 dự án. Mỗi dự án lo một nguồn knowledge trong
+pipeline:
 
 | Dự án | Vai trò trong wikiAgent | Phase | Trạng thái |
 |-------|-------------------------|-------|------------|
 | [`agentMem0`](https://github.com/vanbienperu3107/agentMem0) `Python` | Memory + knowledge server (MCP+REST), chia sẻ **Qdrant** & keys; gọi `extract_and_store()` sau summarizer | 1 | ✅ Production |
 | [`syncthingMem0`](https://github.com/vanbienperu3107/syncthingMem0) `Go` | File sync transport WSS/443 → đẩy Markdown lên Hub → `POST /ingest/file` | 2 | 🔄 Building |
 | **WhatsApp agent** `Node.js` | Baileys realtime → Qwen classify → Haiku extract → `POST /ingest/whatsapp` | 3 | 📋 Planned |
-| [`deployHeadscale`](https://github.com/vanbienperu3107/deployHeadscale) `Python` | Self-host mesh control plane — lớp mạng cho Hub ↔ client trong môi trường proxy-heavy | 2–3 | ✅ |
-| [`tailscale_mod`](https://github.com/vanbienperu3107/tailscale_mod) `Go` · [`TailscaleRemote`](https://github.com/vanbienperu3107/TailscaleRemote) `TS` | Transport/mesh tự chủ — phương án thay/bổ sung cho V2Ray khi kết nối các nguồn qua NAT/firewall | 2–3 | ✅ |
 
 > **Cách kết hợp:** ba nguồn knowledge (hội thoại / file / WhatsApp) đi qua ba
-> "giải pháp" ingest riêng, nhưng cùng đổ về một `wiki_knowledge` và query qua
-> cùng một MCP/REST. Lớp mạng (syncthingMem0 + Tailscale stack) lo phần vận
-> chuyển an toàn qua môi trường mạng hạn chế; `agentMem0` lo lưu trữ & auth.
+> giải pháp ingest riêng, nhưng cùng đổ về một `wiki_knowledge` và query qua
+> cùng một MCP/REST. `agentMem0` lo lưu trữ & auth, `syncthingMem0` lo vận
+> chuyển file, WhatsApp agent lo realtime chat.
 
 ### Tích hợp với agentMem0
 
@@ -158,7 +156,7 @@ Repo này hiện thực **Phase 1**. Endpoint & schema đã định hình sẵn 
 |-------|----------|-----------|------------------------|
 | 1 | Wiki Knowledge Layer (conversation → facts) | 6–7/2026 | ✅ đã hiện thực |
 | 2 | File Sync (`/ingest/file`) — chờ syncthingMem0 WSS | 7–8/2026 | ✅ endpoint sẵn sàng |
-| 3 | WhatsApp pipeline — chờ V2Ray/mesh proxy | 8–9/2026 | 🔜 `source:"whatsapp"` reserved |
+| 3 | WhatsApp pipeline — chờ V2Ray proxy | 8–9/2026 | 🔜 `source:"whatsapp"` reserved |
 | 4 | RAG 2.0 (hybrid BM25+vector, reranker, time-aware) | 9–10/2026 | 🔒 sau 50 query thực tế |
 | 5 | Multi-source consolidation (dedup, contradiction, versioning) | 10–12/2026 | 🔒 nightly job |
 
