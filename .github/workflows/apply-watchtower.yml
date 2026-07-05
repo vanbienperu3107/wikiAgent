@@ -10,6 +10,12 @@ name: Apply Watchtower (pull-based auto-update)
 
 on:
   workflow_dispatch:
+    inputs:
+      monitor_only:
+        description: "true = only check + log (NO auto-update, safe). false = auto-update."
+        type: choice
+        options: ["true", "false"]
+        default: "true"
 
 jobs:
   apply:
@@ -43,6 +49,7 @@ jobs:
               --name memory-watchtower \
               --restart unless-stopped \
               -e DOCKER_API_VERSION=1.41 \
+              -e WATCHTOWER_MONITOR_ONLY=${{ inputs.monitor_only }} \
               -v /var/run/docker.sock:/var/run/docker.sock \
               $CFG \
               containrrr/watchtower:1.7.1 \
