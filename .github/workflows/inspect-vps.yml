@@ -1,0 +1,73 @@
+name: Inspect VPS (read-only)
+
+# Read-only diagnostic for Phase 1 (Wiki Knowledge Layer) rollout.
+# SSHes into the VPS and prints, with all secret VALUES redacted:
+#   1. which env vars mcp-http-server has        (need Qdrant + OpenAI for search_wiki)
+#   2. which env vars archive-api has            (need Anthropic + OpenAI for extract)
+#   3. running containers
+#   4. existing Qdrant collections               (is wiki_knowledge there yet?)
+#   5. Caddyfile structure (long tokens masked)
+#
+# Makes NO changes. Manual trigger only. Uses VPS_* secrets from this repo.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect memory-stack (read-only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets are visible (no values printed)
+        run: |
+          echo "VPS_HOST set:    ${{ secrets.VPS_HOST != '' }}"
+          echo "VPS_USER set:    ${{ secrets.VPS_USER != '' }}"
+          echo "VPS_PORT set:    ${{ secrets.VPS_PORT != '' }}"
+          echo "VPS_SSH_KEY set: ${{ secrets.VPS_SSH_KEY != '' }}"
+
+      - name: SSH read-only inspection
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set +e
+            cd ~/memory-stack 2>/dev/null || cd ~
+
+            echo "########## 1. mcp-http-server env (values redacted) ##########"
+            docker exec memory-mcp-http printenv 2>/dev/null | sort \
+              | sed -E 's/=.*/= <set>/' \
+              | grep -iE 'OPENAI|QDRANT|WIKI|ANTHROPIC|MCP_BEARER|MEMORY_API|ARCHIVE|USER_ID' \
+              || echo "(container memory-mcp-http not found or no matching vars)"
+
+            echo ""
+            echo "########## 2. archive-api env (values redacted) ##########"
+            docker exec memory-archive-api printenv 2>/dev/null | sort \
+              | sed -E 's/=.*/= <set>/' \
+              | grep -iE 'OPENAI|QDRANT|WIKI|ANTHROPIC|MEM0_EMBED|DB_URL|ARCHIVE' \
+              || echo "(container memory-archive-api not found or no matching vars)"
+
+            echo ""
+            echo "########## 3. running containers ##########"
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'memory|qdrant|caddy' \
+              || docker ps --format 'table {{.Names}}\t{{.Status}}'
+
+            echo ""
+            echo "########## 4. Qdrant collections ##########"
+            docker exec memory-archive-api python3 -c "import os,httpx; u=os.environ.get('QDRANT_INTERNAL_URL','http://qdrant:6333'); k=os.environ.get('QDRANT_API_KEY'); r=httpx.get(u+'/collections', headers={'api-key':k} if k else {}, timeout=10).json(); print(sorted(c['name'] for c in r['result']['collections']))" 2>/dev/null \
+              || echo "(qdrant collection check failed — will still work, collection is created lazily)"
+
+            echo ""
+            echo "########## 5. Caddyfile structure (long tokens masked) ##########"
+            if [ -f Caddyfile ]; then
+              echo "lines: $(wc -l < Caddyfile)"
+              sed -E 's/[A-Za-z0-9_-]{24,}/***MASKED***/g' Caddyfile
+            else
+              echo "(no Caddyfile in $(pwd))"
+            fi
+
+            echo ""
+            echo "########## DONE — read-only, nothing was changed ##########"
