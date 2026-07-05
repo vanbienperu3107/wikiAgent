@@ -1,0 +1,63 @@
+name: Apply Watchtower (pull-based auto-update)
+
+# One-shot setup: install/refresh Watchtower on the VPS so the server polls
+# GHCR every 30s and auto-updates the 3 app containers. Idempotent — safe to
+# re-run. Monitors ONLY memory-mcp-http / memory-archive-api / memory-rest-api;
+# infra (qdrant/postgres/caddy) is left alone. Reverse with:
+#   docker rm -f memory-watchtower
+#
+# Manual trigger only.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apply:
+    name: Install watchtower on VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start / refresh watchtower
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            echo "=== Remove existing watchtower (if any) ==="
+            docker rm -f memory-watchtower 2>/dev/null || true
+
+            # Mount host docker creds only if they exist (GHCR private images).
+            CFG=""
+            if [ -f "$HOME/.docker/config.json" ]; then
+              CFG="-v $HOME/.docker/config.json:/config.json:ro"
+              echo "Using docker credentials at $HOME/.docker/config.json"
+            else
+              echo "No docker config.json found — assuming public GHCR images"
+            fi
+
+            echo "=== Start watchtower: poll 30s, monitor 3 app containers ==="
+            docker run -d \
+              --name memory-watchtower \
+              --restart unless-stopped \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              $CFG \
+              containrrr/watchtower:1.7.1 \
+              --interval 30 --cleanup --include-restarting \
+              memory-mcp-http memory-archive-api memory-rest-api
+
+            sleep 4
+            echo "=== Status ==="
+            docker ps --filter name=memory-watchtower --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+            echo ""
+            echo "=== Images the monitored containers currently run ==="
+            for c in memory-mcp-http memory-archive-api memory-rest-api; do
+              echo "$c -> $(docker inspect --format '{{.Config.Image}}' $c 2>/dev/null || echo 'not found')"
+            done
+            echo ""
+            echo "=== watchtower first logs ==="
+            docker logs --tail 25 memory-watchtower 2>&1 | sed -E 's/[A-Za-z0-9_-]{24,}/***MASKED***/g' || true
+            echo ""
+            echo "=== DONE — watchtower now polls every 30s ==="
