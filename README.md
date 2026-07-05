@@ -87,8 +87,10 @@ Mọi endpoint (trừ health) cần `Authorization: Bearer $WIKI_AUTH_TOKEN`.
 
 ### MCP tools (`wiki_agent.mcp_server:app`, port 8011)
 
-- `search_wiki(query, topic?, source?, limit=5)`
+- `search_wiki(query, topic?, source?, limit=5, hybrid?)` — `hybrid=true` = RAG 2.0 (dense+BM25, RRF)
 - `list_wiki_topics()`
+- `add_wiki_fact(topic, content, tags?, confidence?)` — manual add (source="manual")
+- `delete_wiki_fact(id)`
 
 Streamable HTTP transport (MCP 2025-03-26), cùng shape với `mcp-http-server` của
 agentMem0 nên đặt được sau chung Caddy/OAuth.
@@ -151,15 +153,16 @@ Trỏ `QDRANT_INTERNAL_URL` về Qdrant dùng chung và bỏ service `qdrant` tr
 
 ## Roadmap 5 Phase
 
-Repo này hiện thực **Phase 1**. Endpoint & schema đã định hình sẵn cho các phase sau:
+Endpoint & schema đã hiện thực cho cả 5 phase (Phase 4–5 mặc định TẮT/dry-run,
+bật khi cần — đúng nguyên tắc "đo trước khi tối ưu"):
 
 | Phase | Nội dung | Thời gian | Trạng thái (repo này) |
 |-------|----------|-----------|------------------------|
 | 1 | Wiki Knowledge Layer (conversation → facts) | 6–7/2026 | ✅ đã hiện thực |
 | 2 | File Sync (`/ingest/file`) — chờ syncthingMem0 WSS | 7–8/2026 | ✅ endpoint sẵn sàng |
-| 3 | WhatsApp pipeline — chờ V2Ray proxy | 8–9/2026 | ✅ server-side (`/ingest/whatsapp`) · chờ Baileys client |
-| 4 | RAG 2.0 (hybrid BM25+vector, reranker, time-aware) | 9–10/2026 | 🔒 sau 50 query thực tế |
-| 5 | Multi-source consolidation (dedup, contradiction, versioning) | 10–12/2026 | 🔒 nightly job |
+| 3 | WhatsApp pipeline (`/ingest/whatsapp` + Baileys client) | 8–9/2026 | ✅ server + `whatsapp-agent/` · chờ V2Ray |
+| 4 | RAG 2.0 (hybrid BM25+vector RRF, time-aware) | 9–10/2026 | ✅ `?hybrid=true` (opt-in) |
+| 5 | Consolidation (dedup, contradiction, versioning) | 10–12/2026 | ✅ `scripts/run_consolidation.py` (dry-run) |
 
 ### Ước tính chi phí (toàn stack Phase 1–3)
 

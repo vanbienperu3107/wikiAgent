@@ -4,7 +4,9 @@ Endpoints:
     POST /ingest/conversation   Hướng B — AI conversation → extract → store
     POST /ingest/file           Hướng A — Markdown file → store (confidence=1.0)
     POST /ingest/whatsapp       Phase 3 — WhatsApp thread → classify → extract → store
-    GET  /wiki/search           semantic search (backs search_wiki)
+    GET  /wiki/search           semantic search (+ hybrid RAG 2.0 via ?hybrid=true)
+    POST /wiki/fact             manual add (source="manual", conf=1.0)
+    DELETE /wiki/fact/{id}      manual delete
     GET  /wiki/topics           topic list (backs list_wiki_topics)
     GET  /health
 
@@ -18,12 +20,15 @@ from typing import Optional, List
 from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 
-from . import config, knowledge_extractor, embeddings, qdrant_helper, wiki_search, whatsapp
+from . import (
+    config, knowledge_extractor, embeddings, qdrant_helper, wiki_search,
+    whatsapp, rag, fact_crud,
+)
 
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
     description="Multi-source structured knowledge for the Personal AI Knowledge System.",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 # Deterministic namespace for file-source ids (uuid5 of path → auto-dedup).
@@ -55,6 +60,15 @@ class WhatsAppIn(BaseModel):
     thread_id: Optional[str] = None  # remoteJid
     sender: Optional[str] = None     # for contact blacklist
     backend: Optional[str] = None    # extractor backend override
+
+
+class FactIn(BaseModel):
+    topic: str
+    content: str
+    tags: List[str] = []
+    confidence: float = 1.0
+    source: str = "manual"
+    ref: Optional[str] = None
 
 
 @app.post("/ingest/conversation")
@@ -117,10 +131,34 @@ def wiki_search_endpoint(
     topic: Optional[str] = None,
     source: Optional[str] = None,
     limit: int = 5,
+    hybrid: bool = Query(False, description="RAG 2.0: hybrid dense+BM25 with RRF"),
+    beta: float = Query(0.0, description="Recency weight (0=off) for time-aware re-rank"),
     authorization: str = Header(None),
 ):
     check(authorization)
+    if hybrid:
+        return rag.hybrid_search(q, limit=limit, topic=topic, source=source, beta=beta)
     return wiki_search.search_wiki(q, topic=topic, source=source, limit=limit)
+
+
+@app.post("/wiki/fact")
+def add_fact_endpoint(body: FactIn, authorization: str = Header(None)):
+    """Manually add a knowledge fact (source defaults to 'manual', confidence 1.0)."""
+    check(authorization)
+    if knowledge_extractor.is_sensitive(body.content):
+        raise HTTPException(422, "Fact content flagged by privacy filter")
+    fid = fact_crud.add_fact(
+        body.topic, body.content, tags=body.tags,
+        confidence=body.confidence, source=body.source, ref=body.ref,
+    )
+    return {"stored": 1, "id": fid, "source": body.source}
+
+
+@app.delete("/wiki/fact/{point_id}")
+def delete_fact_endpoint(point_id: str, authorization: str = Header(None)):
+    check(authorization)
+    fact_crud.delete_fact(point_id)
+    return {"deleted": point_id}
 
 
 @app.get("/wiki/topics")

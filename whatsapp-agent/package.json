@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-agent",
+  "version": "1.0.0",
+  "description": "Captures personal WhatsApp messages, buffers them per conversation, and posts them to a knowledge-extraction REST endpoint.",
+  "type": "module",
+  "main": "knowledge_pipeline.js",
+  "scripts": {
+    "start": "node knowledge_pipeline.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "qrcode-terminal": "^0.12.0",
+    "undici": "^6.19.8"
+  }
+}

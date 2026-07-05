@@ -16,7 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import config, wiki_search
+from . import config, wiki_search, rag, fact_crud
 
 app = FastAPI(
     title="wikiAgent MCP HTTP",
@@ -46,10 +46,38 @@ TOOLS = [
             "properties": {
                 "query": {"type": "string"},
                 "topic": {"type": "string", "description": "Optional exact topic filter, e.g. 'OCS/charging'"},
-                "source": {"type": "string", "description": "Optional: conversation | file | whatsapp"},
+                "source": {"type": "string", "description": "Optional: conversation | file | whatsapp | manual"},
                 "limit": {"type": "integer", "default": 5},
+                "hybrid": {"type": "boolean", "default": False, "description": "RAG 2.0: hybrid dense+BM25 (RRF) reranking"},
             },
             "required": ["query"],
+        },
+    },
+    {
+        "name": "add_wiki_fact",
+        "description": (
+            "Manually add a fact to the wiki knowledge base (e.g. a runbook step you "
+            "want remembered). Stored with source='manual' and high confidence. "
+            "Re-adding identical content is idempotent."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "topic": {"type": "string", "description": "Hierarchical, e.g. 'deploy/ci'"},
+                "content": {"type": "string"},
+                "tags": {"type": "array", "items": {"type": "string"}},
+                "confidence": {"type": "number", "default": 1.0},
+            },
+            "required": ["topic", "content"],
+        },
+    },
+    {
+        "name": "delete_wiki_fact",
+        "description": "Delete a wiki fact by its id (from search_wiki results).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"id": {"type": "string"}},
+            "required": ["id"],
         },
     },
     {
@@ -73,6 +101,11 @@ def _check_auth(request: Request) -> bool:
 
 def exec_tool(name: str, args: dict):
     if name == "search_wiki":
+        if args.get("hybrid"):
+            return rag.hybrid_search(
+                args["query"], topic=args.get("topic"),
+                source=args.get("source"), limit=args.get("limit", 5),
+            )
         return wiki_search.search_wiki(
             args["query"],
             topic=args.get("topic"),
@@ -81,6 +114,15 @@ def exec_tool(name: str, args: dict):
         )
     if name == "list_wiki_topics":
         return wiki_search.list_wiki_topics()
+    if name == "add_wiki_fact":
+        fid = fact_crud.add_fact(
+            args["topic"], args["content"],
+            tags=args.get("tags", []), confidence=args.get("confidence", 1.0),
+        )
+        return {"stored": 1, "id": fid, "source": "manual"}
+    if name == "delete_wiki_fact":
+        fact_crud.delete_fact(args["id"])
+        return {"deleted": args["id"]}
     raise ValueError(f"Unknown tool: {name}")
 
 
