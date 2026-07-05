@@ -1,0 +1,56 @@
+name: Prep prod tag (safe, no container change)
+
+# Safe prep for the :prod safety model. Does NOT recreate/restart any app
+# container. It only:
+#   1. Establishes ghcr :prod = current :test (docker pull/tag/push) so a prod
+#      tag exists to promote onto later.
+#   2. Dumps the VPS compose (long tokens masked) so the container switch to
+#      :prod can be planned precisely.
+# Manual trigger only.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prep:
+    name: Establish :prod + dump compose (read-mostly)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prep
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set +e
+            echo "########## 1. Establish :prod = current :test on GHCR ##########"
+            for c in memory-mcp-http memory-archive-api memory-rest-api; do
+              IMG=$(docker inspect --format '{{.Config.Image}}' "$c" 2>/dev/null)
+              BASE="${IMG%:*}"
+              echo "--- $c : $BASE ---"
+              docker pull "$BASE:test" && \
+              docker tag  "$BASE:test" "$BASE:prod" && \
+              docker push "$BASE:prod" && echo "OK pushed $BASE:prod" \
+                || echo "FAILED to push $BASE:prod (check registry push creds)"
+            done
+
+            echo ""
+            echo "########## 2. VPS compose (long tokens masked) ##########"
+            cd ~/memory-stack 2>/dev/null || cd ~
+            for f in docker-compose.yml docker-compose.override.yml; do
+              echo "----- $f -----"
+              if [ -f "$f" ]; then
+                sed -E 's/[A-Za-z0-9_-]{24,}/***MASKED***/g' "$f"
+              else
+                echo "(not present)"
+              fi
+            done
+
+            echo ""
+            echo "########## 3. watchtower status ##########"
+            docker ps --filter name=memory-watchtower --format 'table {{.Names}}\t{{.Status}}'
+            echo ""
+            echo "########## DONE — no app container was restarted ##########"
