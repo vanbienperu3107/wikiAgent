@@ -1,0 +1,11 @@
+[project]
+name = "wikiagent"
+version = "0.1.0"
+description = "Wiki Knowledge Layer — multi-source structured knowledge for the Personal AI Knowledge System"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

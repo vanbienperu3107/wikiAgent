@@ -1,0 +1,27 @@
+[
+  {
+    "name": "ocs_charging",
+    "messages": [
+      {"role": "user", "content": "Bên OCS gói MK201 với MK311 charge bao nhiêu MB vậy?"},
+      {"role": "assistant", "content": "Cả MK201 và MK311 đều charge 50MB mỗi lần trigger."},
+      {"role": "user", "content": "Ok ghi nhớ giúp mình MK201=50MB và MK311=50MB nhé."}
+    ],
+    "expect_topic_prefix": "OCS"
+  },
+  {
+    "name": "deploy_ci",
+    "messages": [
+      {"role": "user", "content": "CI deploy agentMem0 chạy mất bao lâu?"},
+      {"role": "assistant", "content": "GitHub Actions build + deploy + 6 smoke test mất khoảng 4 phút."}
+    ],
+    "expect_topic_prefix": "deploy"
+  },
+  {
+    "name": "small_talk",
+    "messages": [
+      {"role": "user", "content": "Chào buổi sáng, hôm nay trời đẹp ha."},
+      {"role": "assistant", "content": "Đúng rồi, chúc bạn ngày làm việc vui vẻ!"}
+    ],
+    "expect_topic_prefix": null
+  }
+]

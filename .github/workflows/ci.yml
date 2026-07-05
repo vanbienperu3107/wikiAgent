@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "wikiAgent/**"
+  pull_request:
+    paths:
+      - "wikiAgent/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wikiAgent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Import smoke check
+        run: python -c "import wiki_agent.app, wiki_agent.mcp_server, wiki_agent.knowledge_extractor"

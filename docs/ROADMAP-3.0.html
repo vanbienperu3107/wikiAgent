@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap 3.0 — Personal AI Knowledge System</title>
+<style>
+  :root {
+    --teal:    #1D9E75;
+    --teal-l:  #E1F5EE;
+    --teal-d:  #085041;
+    --purple:  #534AB7;
+    --purple-l:#EEEDFE;
+    --amber:   #BA7517;
+    --amber-l: #FAEEDA;
+    --coral:   #D85A30;
+    --coral-l: #FAECE7;
+    --gray:    #5F5E5A;
+    --gray-l:  #F1EFE8;
+    --gray-d:  #2C2C2A;
+    --blue:    #185FA5;
+    --blue-l:  #E6F1FB;
+    --green:   #3B6D11;
+    --green-l: #EAF3DE;
+    --red:     #A32D2D;
+    --red-l:   #FCEBEB;
+    --bg:      #FAFAF8;
+    --border:  #E0DDD5;
+    --text:    #1a1a18;
+    --muted:   #6b6b66;
+    --mono:    'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .hero {
+    background: var(--gray-d);
+    color: #fff;
+    padding: 52px 48px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: var(--teal);
+    opacity: 0.12;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .hero-sub {
+    font-size: 16px;
+    color: #aaa;
+    margin-bottom: 28px;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .hero-meta span {
+    font-size: 12px;
+    color: #888;
+  }
+  .hero-meta strong { color: #ccc; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pill-done   { background: var(--teal-l);   color: var(--teal-d); }
+  .pill-active { background: var(--amber-l);  color: var(--amber); }
+  .pill-plan   { background: var(--gray-l);   color: var(--gray); }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── NAV TABS ── */
+  .tabs {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .tabs-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+  /* ── SECTIONS ── */
+  .section { display: none; padding: 40px 0 60px; }
+  .section.active { display: block; }
+
+  /* ── TIMELINE ── */
+  .timeline { position: relative; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 28px; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-item {
+    position: relative;
+    padding-left: 72px;
+    margin-bottom: 40px;
+  }
+  .tl-dot {
+    position: absolute;
+    left: 18px; top: 4px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--border);
+    background: var(--gray-l);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .tl-dot.done   { background: var(--teal);   box-shadow: 0 0 0 2px var(--teal); }
+  .tl-dot.active { background: var(--amber);  box-shadow: 0 0 0 2px var(--amber); }
+  .tl-dot.plan   { background: #fff;          box-shadow: 0 0 0 2px var(--border); }
+
+  .tl-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .tl-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-d);
+    flex: 1;
+  }
+  .tl-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+  .tl-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-d);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── CHECKLIST ── */
+  .checklist { list-style: none; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    color: var(--gray);
+  }
+  .checklist li .chk {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .checklist li.done .chk {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+    font-size: 10px;
+  }
+  .checklist li.done span { color: var(--gray); text-decoration: line-through; }
+
+  /* ── CODE BLOCK ── */
+  .code {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .code .c-teal   { color: #4EC9B0; }
+  .code .c-yellow { color: #DCDCAA; }
+  .code .c-orange { color: #CE9178; }
+  .code .c-blue   { color: #569CD6; }
+  .code .c-green  { color: #6A9955; }
+  .code .c-purple { color: #C586C0; }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+  th {
+    background: var(--gray-d);
+    color: #fff;
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--gray-l); }
+  td.ok   { color: var(--teal);   font-weight: 600; }
+  td.na   { color: var(--red);    font-weight: 600; }
+  td.warn { color: var(--amber);  font-weight: 600; }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch {
+    background: #1a1a18;
+    border-radius: 10px;
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: #ccc;
+    overflow-x: auto;
+  }
+  .arch .a-teal   { color: #4EC9B0; }
+  .arch .a-purple { color: #C586C0; }
+  .arch .a-amber  { color: #DCDCAA; }
+  .arch .a-gray   { color: #888; }
+  .arch .a-coral  { color: #F48771; }
+  .arch .a-green  { color: #6A9955; }
+
+  /* ── PHASE CARDS ── */
+  .phases { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  @media (max-width: 640px) { .phases { grid-template-columns: 1fr; } }
+  .phase-card {
+    border-radius: 10px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .phase-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .phase-card p  { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .phase-p1 { background: var(--teal-l);   border-color: var(--teal);   }
+  .phase-p1 h3 { color: var(--teal-d); }
+  .phase-p2 { background: var(--purple-l); border-color: var(--purple); }
+  .phase-p2 h3 { color: var(--purple); }
+  .phase-p3 { background: var(--amber-l);  border-color: var(--amber);  }
+  .phase-p3 h3 { color: var(--amber); }
+  .phase-p4 { background: var(--blue-l);   border-color: var(--blue);   }
+  .phase-p4 h3 { color: var(--blue); }
+  .phase-p5 { background: var(--coral-l);  border-color: var(--coral);  }
+  .phase-p5 h3 { color: var(--coral); }
+
+  /* ── SECTION HEADING ── */
+  .sec-h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gray-d);
+    margin-bottom: 6px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--teal);
+    display: inline-block;
+  }
+  .sec-desc { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  /* ── INLINE BADGE ── */
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+  .badge-teal   { background: var(--teal-l);   color: var(--teal-d); }
+  .badge-purple { background: var(--purple-l); color: var(--purple); }
+  .badge-amber  { background: var(--amber-l);  color: var(--amber);  }
+  .badge-coral  { background: var(--coral-l);  color: var(--coral);  }
+  .badge-gray   { background: var(--gray-l);   color: var(--gray);   }
+
+  /* ── COST TABLE ── */
+  .cost-total td { font-weight: 700; background: var(--teal-l) !important; color: var(--teal-d); }
+
+  /* ── FLOW ARROWS ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .flow-step .ico {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .flow-arrow {
+    padding-left: 14px;
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-row { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .progress-bar { height: 6px; background: var(--gray-l); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">vanbienperu3107 · Personal AI Knowledge System</div>
+  <h1>Roadmap 3.0</h1>
+  <p class="hero-sub">Từ mem0custom đến multi-source knowledge base tự động</p>
+  <div class="hero-meta">
+    <span><strong>Production</strong> claude.hangocthanh.io.vn</span>
+    <span><strong>Cập nhật</strong> Tháng 6/2026</span>
+    <span><strong>Repos</strong> agentMem0 · syncthingMem0 · WhatsApp agent</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" onclick="showTab('overview')">Tổng quan</button>
+    <button class="tab" onclick="showTab('history')">Lịch sử</button>
+    <button class="tab" onclick="showTab('phases')">Các Phase</button>
+    <button class="tab" onclick="showTab('arch')">Kiến trúc</button>
+    <button class="tab" onclick="showTab('checklist')">Checklist</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB: OVERVIEW
+════════════════════════════════════════════ -->
+<div id="tab-overview" class="section active">
+<div class="container">
+
+  <div style="margin-bottom:32px;">
+    <div class="sec-h2">Tầm nhìn</div>
+    <p class="sec-desc">
+      Xây dựng <strong>Personal AI Knowledge System</strong> tự động tích lũy knowledge từ mọi nguồn —
+      AI conversations, file Markdown, WhatsApp — không phụ thuộc tool cụ thể, cho phép Claude &amp; ChatGPT
+      truy cập qua MCP/REST từ bất kỳ client nào.
+    </p>
+  </div>
+
+  <div class="phases">
+    <div class="phase-card phase-p1">
+      <h3>Phase 1 — Wiki Knowledge Layer</h3>
+      <p>Tháng 6–7/2026 · Làm được ngay</p>
+      <span class="badge badge-teal">~120 dòng Python</span>
+    </div>
+    <div class="phase-card phase-p2">
+      <h3>Phase 2 — File Sync Integration</h3>
+      <p>Tháng 7–8/2026 · Chờ syncthingMem0 WSS</p>
+      <span class="badge badge-purple">~80 dòng Python + Go</span>
+    </div>
+    <div class="phase-card phase-p3">
+      <h3>Phase 3 — WhatsApp Pipeline</h3>
+      <p>Tháng 8–9/2026 · Chờ V2Ray proxy</p>
+      <span class="badge badge-amber">~120 dòng Node.js</span>
+    </div>
+    <div class="phase-card phase-p4">
+      <h3>Phase 4 — RAG 2.0</h3>
+      <p>Tháng 9–10/2026 · Chờ 50 queries thực tế</p>
+      <span class="badge badge-gray">BM25 + Reranker + Time-aware</span>
+    </div>
+    <div class="phase-card phase-p5" style="grid-column: 1 / -1;">
+      <h3>Phase 5 — Multi-source Consolidation</h3>
+      <p>Tháng 10–12/2026 · Sau Phase 4</p>
+      <span class="badge badge-coral">Nightly consolidation · Contradiction detection · Versioning</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title">3 Repos — vai trò rõ ràng</div>
+    <table>
+      <tr>
+        <th>Repo</th>
+        <th>Vai trò</th>
+        <th>Status</th>
+        <th>Ngôn ngữ</th>
+      </tr>
+      <tr>
+        <td><code>agentMem0</code></td>
+        <td>AI memory + knowledge server (MCP + REST)</td>
+        <td class="ok">✅ Production</td>
+        <td>Python</td>
+      </tr>
+      <tr>
+        <td><code>syncthingMem0</code></td>
+        <td>File sync transport WSS/443 (Syncthing fork)</td>
+        <td class="warn">🔄 Building</td>
+        <td>Go</td>
+      </tr>
+      <tr>
+        <td>WhatsApp agent</td>
+        <td>Realtime message → knowledge pipeline</td>
+        <td class="na">📋 Planned</td>
+        <td>Node.js</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Cost estimate (monthly)</div>
+    <table>
+      <tr><th>Item</th><th>Cost/tháng</th><th>Ghi chú</th></tr>
+      <tr><td>VPS (Contabo/Hetzner)</td><td>$5–10</td><td>agentMem0 + syncthingMem0 hub</td></tr>
+      <tr><td>Neon Postgres</td><td>$0</td><td>Free tier &lt;0.5GB</td></tr>
+      <tr><td>Cloudflare R2</td><td>$0–1</td><td>&lt;10GB transcripts</td></tr>
+      <tr><td>OpenAI Embeddings</td><td>$1–3</td><td>text-embedding-3-small</td></tr>
+      <tr><td>Claude Haiku (extractor)</td><td>$2–5</td><td>~1000 conversations/tháng</td></tr>
+      <tr><td>Qwen 7B DeepInfra (classify)</td><td>$1–2</td><td>~5000 WhatsApp messages/tháng</td></tr>
+      <tr class="cost-total"><td><strong>Tổng</strong></td><td><strong>~$10–21/tháng</strong></td><td>Toàn bộ stack Phase 1–3</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Nguyên tắc thiết kế</div>
+    <ul class="checklist">
+      <li class="done"><div class="chk">✓</div><span>Không làm trước khi đo — thu 50 queries thực tế trước RAG upgrade</span></li>
+      <li class="done"><div class="chk">✓</div><span>Không thêm service mới nếu stack cũ đủ — wiki_knowledge chạy trên Qdrant hiện có</span></li>
+      <li class="done"><div class="chk">✓</div><span>LLM chỉ dùng cho judgment — routing/filter/dedup dùng code tất định</span></li>
+      <li class="done"><div class="chk">✓</div><span>Privacy-first — filter keywords nhạy cảm trước khi gọi bất kỳ LLM nào</span></li>
+      <li class="done"><div class="chk">✓</div><span>Backward compatible — 8 tools cũ và mem0_mcp_selfhosted không thay đổi</span></li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB: HISTORY
+════════════════════════════════════════════ -->
+<div id="tab-history" class="section">
+<div class="container">
+  <div class="sec-h2">Lịch sử phát triển</div>
+  <p class="sec-desc">Từ prototype đến production — con đường build agentMem0</p>
+
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-dot done">✓</div>
+      <div class="tl-header">
+        <div class="tl-title">v0 — Prototype &amp; Evaluation</div>
+        <span class="pill pill-done">✅ Done</span>
+        <span class="tl-date">Tháng 3–4/2026</span>
+      </div>
+      <p class="tl-desc">Thử nghiệm mem0.ai hosted, đánh giá giới hạn, quyết định self-hosted.</p>
+      <div class="card">
+        <ul class="checklist">
+          <li class="done"><div class="chk">✓</div><span>Thử mem0.ai hosted — nhận ra không control được data và pipeline</span></li>
+          <li class="done"><div class="chk">✓</div><span>Đánh giá agentmemory (rohitg00) — 53 MCP tools, 4-tier memory, 0 external DB</span></li>
+          <li class="done"><div class="chk">✓</div><span>So sánh với agentMem0 — quyết định build self-hosted riêng</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot done">✓</div>
+      <div class="tl-header">
+        <div class="tl-title">v1.0 — mem0custom Production</div>
+        <span class="pill pill-done">✅ Done</span>
+        <span class="tl-date">Tháng 4–5/2026</span>
+      </div>
+      <p class="tl-desc">Self-hosted memory server đầu tiên. Repo: <code>thanhiont423/mem0custom</code></p>
+      <div class="card">
+        <ul class="checklist">
+          <li class="done"><div class="chk">✓</div><span>mem0 + Qdrant vector layer (collection <code>mem0_mcp_selfhosted</code>)</span></li>
+          <li class="done"><div class="chk">✓</div><span>Archive transcript layer (Neon Postgres + Cloudflare R2)</span></li>
+          <li class="done"><div class="chk">✓</div><span>Caddy 2.8 + sslh multiplex port 443</span></li>
+          <li class="done"><div class="chk">✓</div><span>LLM-generated summary (Claude Haiku)</span></li>
+          <li class="done"><div class="chk">✓</div><span>Semantic search trên summary embeddings (OpenAI text-embedding-3-small)</span></li>
+          <li class="done"><div class="chk">✓</div><span><code>load_context_for_continuation</code> MCP tool (CCR pattern)</span></li>
+          <li class="done"><div class="chk">✓</div><span>OAuth 2.1 + DCR cho Claude Desktop App</span></li>
+          <li class="done"><div class="chk">✓</div><span>OpenAPI spec cho ChatGPT Custom GPT</span></li>
+          <li class="done"><div class="chk">✓</div><span>GitHub Actions CI/CD — build + deploy + 6 smoke tests (~4 phút)</span></li>
+          <li class="done"><div class="chk">✓</div><span>8 MCP tools hoàn chỉnh</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot done">✓</div>
+      <div class="tl-header">
+        <div class="tl-title">v1.1 — agentMem0 + ChatGPT Desktop</div>
+        <span class="pill pill-done">✅ Done</span>
+        <span class="tl-date">Tháng 5–6/2026</span>
+      </div>
+      <p class="tl-desc">Rename repo, tích hợp ChatGPT Desktop app (Tauri/Rust v0.8.6). Repo: <code>vanbienperu3107/agentMem0</code></p>
+      <div class="card">
+        <ul class="checklist">
+          <li class="done"><div class="chk">✓</div><span>Rename: <code>mem0custom</code> → <code>agentMem0</code> (05/06/2026)</span></li>
+          <li class="done"><div class="chk">✓</div><span>Tích hợp ChatGPT Desktop app v0.8.6</span></li>
+          <li class="done"><div class="chk">✓</div><span><code>add_memory</code> / <code>search_memories</code> tool qua <code>MEMORY_API_TOKEN</code></span></li>
+          <li class="done"><div class="chk">✓</div><span>Tương thích: Claude Desktop, Claude Code, ChatGPT App, Custom GPT, ChatGPT Desktop</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot active"></div>
+      <div class="tl-header">
+        <div class="tl-title">syncthingMem0 v1.0 — Bootstrap</div>
+        <span class="pill pill-active">🔄 In Progress</span>
+        <span class="tl-date">Tháng 6/2026</span>
+      </div>
+      <p class="tl-desc">Syncthing fork cho môi trường proxy-heavy. Repo: <code>vanbienperu3107/syncthingMem0</code></p>
+      <div class="card">
+        <ul class="checklist">
+          <li class="done"><div class="chk">✓</div><span>CI workflow (Go) — bootstrap mode</span></li>
+          <li class="done"><div class="chk">✓</div><span>Release workflow (git tag → build)</span></li>
+          <li class="done"><div class="chk">✓</div><span>Deploy scaffold + CI/CD docs</span></li>
+          <li><div class="chk"></div><span>WSS transport over HTTPS port 443</span></li>
+          <li><div class="chk"></div><span>JWT bearer-token authentication</span></li>
+          <li><div class="chk"></div><span>Incremental scanner (dirty paths + digest cache)</span></li>
+          <li><div class="chk"></div><span>rsync-style delta transfer</span></li>
+          <li><div class="chk"></div><span>Last-writer-wins + ancestor tracking</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot plan"></div>
+      <div class="tl-header">
+        <div class="tl-title">Roadmap 3.0 — Multi-source Knowledge System</div>
+        <span class="pill pill-plan">📋 Planned</span>
+        <span class="tl-date">Tháng 6–12/2026</span>
+      </div>
+      <p class="tl-desc">5 phases: Wiki Layer → File Sync → WhatsApp → RAG 2.0 → Consolidation</p>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB: PHASES
+════════════════════════════════════════════ -->
+<div id="tab-phases" class="section">
+<div class="container">
+  <div class="sec-h2">5 Phases chi tiết</div>
+  <p class="sec-desc">Mỗi phase có success criteria rõ ràng và dependency cụ thể</p>
+
+  <!-- P1 -->
+  <div class="card" style="border-left: 4px solid var(--teal); margin-bottom:24px;">
+    <div class="card-title" style="color:var(--teal-d); font-size:16px;">
+      <div class="card-dot" style="background:var(--teal);"></div>
+      Phase 1 — Wiki Knowledge Layer
+      <span class="badge badge-teal" style="margin-left:auto;">Tháng 6–7/2026</span>
+      <span class="badge badge-teal">Không cần dependency</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      Hướng B — AI Conversation → Knowledge Extract. Thêm <code>knowledge_extractor.py</code> vào archive-api,
+      tạo collection <code>wiki_knowledge</code>, thêm 2 MCP tools mới.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="ico" style="background:var(--teal-l);">💬</div><span>AI Conversation kết thúc</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--purple-l);">📝</div><span><code>summarizer.py</code> tạo summary (Haiku) — như cũ</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--teal-l);">🧠</div><span><code>knowledge_extractor.py</code> <strong>(MỚI)</strong> — Haiku extract structured facts</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--amber-l);">🗄️</div><span>Qdrant <code>wiki_knowledge</code> — source: "conversation"</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--coral-l);">🔍</div><span><code>search_wiki</code> + <code>list_wiki_topics</code> MCP tools</span></div>
+    </div>
+
+    <div class="code" style="margin-top:12px;">
+<span class="c-green"># archive-api/knowledge_extractor.py (~80 dòng)</span>
+<br>EXTRACT_PROMPT = <span class="c-orange">"""
+Từ đoạn hội thoại, extract facts kỹ thuật quan trọng.
+JSON: [{"topic":"domain/sub","content":"...","tags":[...],"confidence":0.0-1.0}]
+Chỉ facts có giá trị tái sử dụng. Bỏ qua small talk.
+"""</span>
+<br><br><span class="c-green"># Qdrant payload schema</span>
+<br>{<span class="c-teal">"topic"</span>: <span class="c-orange">"OCS/charging"</span>, <span class="c-teal">"content"</span>: <span class="c-orange">"MK201=50MB+MK311=50MB"</span>,
+<br> <span class="c-teal">"source"</span>: <span class="c-orange">"conversation"</span>, <span class="c-teal">"confidence"</span>: <span class="c-yellow">0.91</span>,
+<br> <span class="c-teal">"tags"</span>: [<span class="c-orange">"OCS"</span>, <span class="c-orange">"MK201"</span>, <span class="c-orange">"Bitel"</span>]}
+    </div>
+
+    <ul class="checklist" style="margin-top:12px;">
+      <li><div class="chk"></div><span><code>knowledge_extractor.py</code> + unit test 10 conversations</span></li>
+      <li><div class="chk"></div><span>Qdrant collection <code>wiki_knowledge</code> với full schema</span></li>
+      <li><div class="chk"></div><span>MCP tool <code>search_wiki(query, topic?, limit)</code></span></li>
+      <li><div class="chk"></div><span>MCP tool <code>list_wiki_topics()</code></span></li>
+      <li><div class="chk"></div><span>Verify: <code>search_wiki("OCS error 411")</code> trả về fact từ session trước</span></li>
+    </ul>
+  </div>
+
+  <!-- P2 -->
+  <div class="card" style="border-left: 4px solid var(--purple); margin-bottom:24px;">
+    <div class="card-title" style="color:var(--purple); font-size:16px;">
+      <div class="card-dot" style="background:var(--purple);"></div>
+      Phase 2 — File Sync Integration
+      <span class="badge badge-purple" style="margin-left:auto;">Tháng 7–8/2026</span>
+      <span class="badge badge-purple">Block: syncthingMem0 WSS</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      Hướng A — Markdown files từ bất kỳ editor → syncthingMem0 → VPS → index vào wiki_knowledge.
+      Bổ sung cho Hướng B: bạn viết runbook thủ công → confidence=1.0.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="ico" style="background:var(--purple-l);">📁</div><span>Markdown file thay đổi (VS Code / bất kỳ editor)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--purple-l);">🔄</div><span>syncthingMem0 incremental scanner phát hiện dirty path</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--purple-l);">📡</div><span>rsync delta transfer qua WSS/443 lên VPS Hub</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--teal-l);">🪝</div><span>Webhook: Hub → <code>POST /ingest/file</code> → archive-api</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--amber-l);">🗄️</div><span>Qdrant <code>wiki_knowledge</code> — source: "file", confidence: 1.0</span></div>
+    </div>
+
+    <ul class="checklist" style="margin-top:12px;">
+      <li><div class="chk"></div><span><code>POST /ingest/file</code> endpoint trong archive-api</span></li>
+      <li><div class="chk"></div><span>syncthingMem0 Go webhook sau reconcile thành công</span></li>
+      <li><div class="chk"></div><span>Folder <code>/sync/wiki/runbooks/</code>, <code>/sync/wiki/projects/</code>, <code>/sync/wiki/personal/</code></span></li>
+      <li><div class="chk"></div><span>Deterministic ID <code>uuid5(path)</code> → auto-dedup khi re-sync</span></li>
+      <li><div class="chk"></div><span>Test: Mac → 30s → Qdrant → Claude query</span></li>
+    </ul>
+  </div>
+
+  <!-- P3 -->
+  <div class="card" style="border-left: 4px solid var(--amber); margin-bottom:24px;">
+    <div class="card-title" style="color:var(--amber); font-size:16px;">
+      <div class="card-dot" style="background:var(--amber);"></div>
+      Phase 3 — WhatsApp Knowledge Pipeline
+      <span class="badge badge-amber" style="margin-left:auto;">Tháng 8–9/2026</span>
+      <span class="badge badge-amber">Block: V2Ray proxy setup</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      Personal WhatsApp conversations → Qwen 7B filter → Haiku extract → wiki_knowledge.
+      Informal knowledge từ chat đồng nghiệp tự động capture.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step"><div class="ico" style="background:#E7F8E7;">💬</div><span>WhatsApp personal messages (Baileys v7+)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--gray-l);">⏱️</div><span>Buffer 5 phút theo thread (<code>remoteJid</code>)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--amber-l);">🤖</div><span>Qwen 7B (DeepInfra) classify: keep=true/false + topic</span></div>
+      <div class="flow-arrow">↓ chỉ khi keep=true</div>
+      <div class="flow-step"><div class="ico" style="background:var(--teal-l);">🧠</div><span>Claude Haiku extract structured fact</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--red-l);">🔒</div><span>Privacy filter (keywords + contact blacklist)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step"><div class="ico" style="background:var(--amber-l);">🗄️</div><span>Qdrant <code>wiki_knowledge</code> — source: "whatsapp"</span></div>
+    </div>
+
+    <div class="code" style="margin-top:12px;">
+<span class="c-green">// whatsapp-agent/knowledge_pipeline.js</span>
+<br><span class="c-blue">const</span> threads = <span class="c-blue">new</span> Map(); <span class="c-green">// threadKey → messages[]</span>
+<br><span class="c-blue">const</span> WINDOW_MS = <span class="c-yellow">5 * 60 * 1000</span>; <span class="c-green">// 5 phút debounce</span>
+<br><span class="c-blue">const</span> SKIP_KEYWORDS = [<span class="c-orange">'password'</span>, <span class="c-orange">'mật khẩu'</span>, <span class="c-orange">'token'</span>, <span class="c-orange">'secret'</span>];
+<br><br><span class="c-green">// Dedup: ID = sha256(content)[:32] → Qdrant upsert</span>
+    </div>
+
+    <ul class="checklist" style="margin-top:12px;">
+      <li><div class="chk"></div><span>Baileys v7+ kết nối qua V2Ray over WebSocket + Nginx</span></li>
+      <li><div class="chk"></div><span><code>knowledge_pipeline.js</code>: buffer + classify + extract</span></li>
+      <li><div class="chk"></div><span><code>POST /ingest/whatsapp</code> endpoint trong archive-api</span></li>
+      <li><div class="chk"></div><span>Privacy filter keywords + contact blacklist</span></li>
+      <li><div class="chk"></div><span>Dedup bằng sha256 content hash</span></li>
+      <li><div class="chk"></div><span>Test: nhắn tin kỹ thuật → xuất hiện trong wiki sau 6 phút</span></li>
+    </ul>
+  </div>
+
+  <!-- P4 -->
+  <div class="card" style="border-left: 4px solid var(--blue); margin-bottom:24px;">
+    <div class="card-title" style="color:var(--blue); font-size:16px;">
+      <div class="card-dot" style="background:var(--blue);"></div>
+      Phase 4 — RAG 2.0
+      <span class="badge badge-gray" style="margin-left:auto;">Tháng 9–10/2026</span>
+      <span class="badge badge-gray">Cần 50 queries thực tế trước</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      Nâng cấp search quality. Đo baseline trước, implement sau. Không guess.
+    </p>
+    <table>
+      <tr><th>#</th><th>Upgrade</th><th>Expected gain</th><th>Phụ thuộc</th></tr>
+      <tr><td>1</td><td>Hybrid Search (BM25 + Vector, RRF)</td><td class="ok">+15–25% recall</td><td>Phase 1 done</td></tr>
+      <tr><td>2</td><td>Reranker (Cohere API hoặc BGE local)</td><td class="ok">+20–35% precision@5</td><td>#1 done</td></tr>
+      <tr><td>3</td><td>Time-aware ranking (α×sim + β×recency)</td><td class="warn">Chất lượng facts mới</td><td>#1 done</td></tr>
+      <tr><td>4</td><td>Embedding tốt hơn (multilingual-e5-large)</td><td class="warn">+tiếng Việt quality</td><td>Cần re-index</td></tr>
+      <tr><td>5</td><td>Query Rewriting / HyDE (Haiku)</td><td class="warn">+informal queries</td><td>#1 done</td></tr>
+    </table>
+  </div>
+
+  <!-- P5 -->
+  <div class="card" style="border-left: 4px solid var(--coral);">
+    <div class="card-title" style="color:var(--coral); font-size:16px;">
+      <div class="card-dot" style="background:var(--coral);"></div>
+      Phase 5 — Multi-source Consolidation
+      <span class="badge badge-coral" style="margin-left:auto;">Tháng 10–12/2026</span>
+      <span class="badge badge-coral">Sau Phase 4</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      Consolidate, deduplicate, và version knowledge từ 3 nguồn. Nightly job 2AM Lima (UTC-5).
+    </p>
+    <ul class="checklist">
+      <li><div class="chk"></div><span>Nightly consolidation: group by topic, merge similarity > 0.95</span></li>
+      <li><div class="chk"></div><span>Contradiction detection: Haiku so sánh facts cùng topic</span></li>
+      <li><div class="chk"></div><span>Knowledge versioning: <code>status: active/obsolete</code> — không xóa facts cũ</span></li>
+      <li><div class="chk"></div><span>Telegram alert khi phát hiện contradiction quan trọng</span></li>
+      <li><div class="chk"></div><span>Scheduled daily health check + workflow failure notification</span></li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB: ARCH
+════════════════════════════════════════════ -->
+<div id="tab-arch" class="section">
+<div class="container">
+  <div class="sec-h2">Kiến trúc cuối (sau Phase 3)</div>
+  <p class="sec-desc">Ba nguồn knowledge → một Qdrant collection → mọi AI client</p>
+
+  <div class="arch">
+<span class="a-gray">┌──────────────────────────────────────────────────────────────────┐</span>
+<br><span class="a-gray">│  </span><span class="a-amber">KNOWLEDGE SOURCES</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">│  </span><span class="a-teal">[AI Conversations]</span>      <span class="a-purple">[Markdown Files]</span>       <span class="a-amber">[WhatsApp Personal]</span>
+<br><span class="a-gray">│  Claude / ChatGPT       VS Code / any editor   Baileys v7+ realtime</span>
+<br><span class="a-gray">│  Hướng B                Hướng A                Phase 3</span>
+<br><span class="a-gray">│  archive-upload.py      syncthingMem0 WSS/443  V2Ray proxy</span>
+<br><span class="a-gray">└──────────────┬───────────────────┬──────────────────┬────────────┘</span>
+<br>              <span class="a-gray">↓</span>                   <span class="a-gray">↓</span>                  <span class="a-gray">↓</span>
+<br><span class="a-gray">┌──────────────────────────────────────────────────────────────────┐</span>
+<br><span class="a-gray">│  </span><span class="a-teal">INGESTION LAYER (archive-api / FastAPI)</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">│  knowledge_extractor.py  │  POST /ingest/file  │  POST /ingest/whatsapp</span>
+<br><span class="a-gray">│  Haiku extract facts     │  uuid5 dedup        │  Qwen filter + Haiku</span>
+<br><span class="a-gray">│  embeddings.py           │  confidence=1.0     │  privacy filter</span>
+<br><span class="a-gray">│  (OpenAI text-emb-3-sm)  │                     │  sha256 dedup</span>
+<br><span class="a-gray">└──────────────┬───────────────────────────────────────────────────┘</span>
+<br>              <span class="a-gray">↓</span>
+<br><span class="a-gray">┌──────────────────────────────────────────────────────────────────┐</span>
+<br><span class="a-gray">│  </span><span class="a-amber">STORAGE</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">│  Qdrant 1.12:</span>
+<br><span class="a-gray">│    </span><span class="a-teal">mem0_mcp_selfhosted</span>  <span class="a-gray">(facts rời — mem0 managed)</span>
+<br><span class="a-gray">│    </span><span class="a-purple">wiki_knowledge</span>       <span class="a-gray">(structured, multi-source, Phase 1–3)</span>
+<br><span class="a-gray">│      payload: topic, content, source, tags, confidence, timestamps</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">│  Neon Postgres           (session metadata, OAuth tokens)</span>
+<br><span class="a-gray">│  Cloudflare R2           (gzipped transcripts, backup)</span>
+<br><span class="a-gray">└──────────────┬───────────────────────────────────────────────────┘</span>
+<br>              <span class="a-gray">↓</span>
+<br><span class="a-gray">┌──────────────────────────────────────────────────────────────────┐</span>
+<br><span class="a-gray">│  </span><span class="a-coral">QUERY LAYER (mcp-http-server + memory-rest-api)</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">│  8 tools cũ (giữ nguyên) + 2 tools mới:</span>
+<br><span class="a-gray">│    search_wiki(query, topic?, limit)  →  wiki_knowledge semantic</span>
+<br><span class="a-gray">│    list_wiki_topics()                →  danh sách topics</span>
+<br><span class="a-gray">│</span>
+<br><span class="a-gray">└──────────────┬──────────────┬────────────────┬─────────────────--┘</span>
+<br>              <span class="a-gray">↓</span>             <span class="a-gray">↓</span>               <span class="a-gray">↓</span>
+<br>   <span class="a-coral">Claude.ai/Cowork</span>  <span class="a-green">ChatGPT/GPT Action</span>  <span class="a-purple">Claude Code</span>
+<br>   <span class="a-gray">MCP HTTP+OAuth    REST API bearer    stdio MCP</span>
+  </div>
+
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title">Không thay đổi gì (backward compat)</div>
+    <ul class="checklist">
+      <li class="done"><div class="chk">✓</div><span>8 MCP tools cũ — không đổi signature</span></li>
+      <li class="done"><div class="chk">✓</div><span>Collection <code>mem0_mcp_selfhosted</code> — không đổi schema</span></li>
+      <li class="done"><div class="chk">✓</div><span>OAuth 2.1 + DCR flow — không đổi</span></li>
+      <li class="done"><div class="chk">✓</div><span>Neon Postgres + Cloudflare R2 — không đổi</span></li>
+      <li class="done"><div class="chk">✓</div><span>GitHub Actions CI/CD — không đổi</span></li>
+      <li class="done"><div class="chk">✓</div><span>Không thêm service mới — <code>wiki_knowledge</code> chạy trên Qdrant đang có</span></li>
+    </ul>
+  </div>
+
+</div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     TAB: CHECKLIST
+════════════════════════════════════════════ -->
+<style>
+  .status-tag { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .st-now   { background:#E1F5EE; color:#085041; }
+  .st-block { background:#FAEEDA; color:#854F0B; }
+  .st-later { background:#F1EFE8; color:#5F5E5A; }
+  .st-done  { background:#E1F5EE; color:#085041; }
+
+  .cl-phase-header {
+    display:flex; align-items:center; gap:14px;
+    margin: 28px 0 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cl-phase-num {
+    width:36px; height:36px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:700; font-size:13px; flex-shrink:0;
+  }
+  .cl-phase-title { font-size:16px; font-weight:700; color:var(--gray-d); }
+  .cl-phase-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+  .cl-progress-wrap { margin-left:auto; }
+
+  .cl-items { display:flex; flex-direction:column; gap:6px; margin-bottom:4px; }
+  .cl-item {
+    display:flex; align-items:flex-start; gap:12px;
+    padding:10px 14px; border-radius:8px; border:1px solid transparent;
+  }
+  .cl-item.st-now   { background:#F0FBF6; border-color:#9FE1CB; }
+  .cl-item.st-block { background:#FFFBF0; border-color:#FAC775; }
+  .cl-item.st-later { background:#FAFAF8; border-color:#E0DDD5; }
+  .cl-item.st-done  { background:#F0FBF6; border-color:#9FE1CB; opacity:0.7; }
+  .cl-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .cl-body { flex:1; min-width:0; }
+  .cl-task { font-size:13px; font-weight:600; color:var(--gray-d); }
+  .cl-detail { font-size:12px; color:var(--muted); margin-top:2px; line-height:1.5; }
+</style>
+
+<div id="tab-checklist" class="section">
+<div class="container">
+
+  <div class="sec-h2">Master Checklist</div>
+  <p class="sec-desc">Trạng thái thực tế từng task — tháng 6/2026</p>
+
+  <!-- LEGEND -->
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; padding:12px 16px; background:#fff; border:1px solid var(--border); border-radius:10px;">
+    <span style="font-size:12px; font-weight:600; color:var(--muted); align-self:center;">Trạng thái:</span>
+    <span class="status-tag st-now">🔥 Làm được ngay</span>
+    <span class="status-tag st-block">⏳ Blocked — chờ dependency</span>
+    <span class="status-tag st-later">🔒 Chưa tới lượt</span>
+    <span class="status-tag st-done">✅ Done</span>
+  </div>
+
+  <!-- STATUS HIỆN TẠI -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px;">
+    <div style="background:var(--teal-l); border:1px solid var(--teal); border-radius:10px; padding:14px 16px; display:flex; gap:10px; align-items:flex-start;">
+      <span style="font-size:18px;">✅</span>
+      <div>
+        <div style="font-weight:700; color:var(--teal-d); font-size:14px;">agentMem0 v1.1</div>
+        <div style="font-size:11px; color:var(--teal); margin-top:2px;">Production · 8 MCP tools · OAuth 2.1 · ChatGPT Desktop · CI/CD</div>
+      </div>
+    </div>
+    <div style="background:var(--amber-l); border:1px solid var(--amber); border-radius:10px; padding:14px 16px; display:flex; gap:10px; align-items:flex-start;">
+      <span style="font-size:18px;">🔄</span>
+      <div>
+        <div style="font-weight:700; color:var(--amber); font-size:14px;">syncthingMem0 v1.0</div>
+        <div style="font-size:11px; color:var(--amber); margin-top:2px;">Bootstrap CI/CD done · WSS transport đang build</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PHASE 1 ─── -->
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--teal);">P1</span>
+    <div>
+      <div class="cl-phase-title">Phase 1 — Wiki Knowledge Layer</div>
+      <div class="cl-phase-sub">Tháng 6–7/2026 · Không cần dependency · <strong style="color:var(--teal);">Bắt đầu ngay hôm nay</strong></div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Tạo <code>archive-api/knowledge_extractor.py</code></div>
+        <div class="cl-detail">~80 dòng · Haiku extract structured facts từ transcript · JSON: topic, content, tags, confidence</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Thêm <code>WIKI_COLLECTION</code> + <code>ensure_wiki_collection()</code> vào <code>qdrant_helper.py</code></div>
+        <div class="cl-detail">~10 dòng · VectorParams(size=1536, Distance.COSINE) · không đụng collection cũ</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Gọi extractor trong <code>archive-api/app.py</code> sau summarizer</div>
+        <div class="cl-detail">3 dòng thêm · n_facts = extract_and_store(transcript, session_id)</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Thêm MCP tool <code>search_wiki(query, topic?, limit=5)</code></div>
+        <div class="cl-detail">Semantic search trên wiki_knowledge · thêm vào tools list mcp-http-server</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Thêm MCP tool <code>list_wiki_topics()</code></div>
+        <div class="cl-detail">Group by topic · trả về list + count · deploy test + smoke test</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+  </div>
+
+  <!-- ─── syncthingMem0 WSS ─── -->
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--amber); font-size:16px;">🔄</span>
+    <div>
+      <div class="cl-phase-title">syncthingMem0 — WSS Implementation</div>
+      <div class="cl-phase-sub">Làm song song với Phase 1 · Unblock Phase 2 sau khi xong</div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Tạo <code>go.mod</code> + <code>cmd/syncthing/main.go</code></div>
+        <div class="cl-detail">Bootstrap Go module · CI chuyển từ bootstrap mode sang build mode thật</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Implement WSS transport layer (gorilla/websocket)</div>
+        <div class="cl-detail">Upgrade HTTP → WSS · TLS termination tại Caddy · port 443</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-now">
+      <span class="cl-icon">🔥</span>
+      <div class="cl-body">
+        <div class="cl-task">Implement JWT bearer-token auth</div>
+        <div class="cl-detail">golang-jwt/jwt · device token per client · server secret sign</div>
+      </div>
+      <span class="status-tag st-now">Làm ngay</span>
+    </div>
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Incremental scanner (dirty paths + digest cache)</div>
+        <div class="cl-detail">fsnotify · baseline state + dirty queue · sau WSS + auth xong</div>
+      </div>
+      <span class="status-tag st-block">Sau WSS + auth</span>
+    </div>
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">rsync delta transfer + Last-writer-wins reconciler</div>
+        <div class="cl-detail">rolling hash · delta patch · ancestor tracking cho conflict</div>
+      </div>
+      <span class="status-tag st-block">Sau scanner</span>
+    </div>
+  </div>
+
+  <!-- ─── PHASE 2 ─── -->
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--purple);">P2</span>
+    <div>
+      <div class="cl-phase-title">Phase 2 — File Sync Integration</div>
+      <div class="cl-phase-sub">Tháng 7–8/2026 · <strong style="color:var(--amber);">Block: syncthingMem0 WSS phải xong trước</strong></div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Tạo <code>POST /ingest/file</code> endpoint trong archive-api</div>
+        <div class="cl-detail">uuid5(path) dedup · embedding → wiki_knowledge · confidence=1.0</div>
+      </div>
+      <span class="status-tag st-block">Chờ WSS xong</span>
+    </div>
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Thêm Go webhook trong syncthingMem0 Hub sau reconcile</div>
+        <div class="cl-detail">Sau file .md được ghi thành công → POST /ingest/file</div>
+      </div>
+      <span class="status-tag st-block">Chờ WSS xong</span>
+    </div>
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Setup folder <code>/sync/wiki/runbooks/</code>, <code>/projects/</code>, <code>/personal/</code> trên VPS</div>
+      </div>
+      <span class="status-tag st-block">Chờ WSS xong</span>
+    </div>
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Integration test: Mac → 30s → Qdrant → Claude query</div>
+      </div>
+      <span class="status-tag st-block">Sau P2 xong</span>
+    </div>
+  </div>
+
+  <!-- ─── PHASE 3 ─── -->
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--amber);">P3</span>
+    <div>
+      <div class="cl-phase-title">Phase 3 — WhatsApp Knowledge Pipeline</div>
+      <div class="cl-phase-sub">Tháng 8–9/2026 · <strong style="color:var(--amber);">Block: V2Ray proxy + Baileys session</strong></div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-block">
+      <span class="cl-icon">⏳</span>
+      <div class="cl-body">
+        <div class="cl-task">Setup V2Ray over WebSocket + Nginx proxy trên VPS</div>
+        <div class="cl-detail">Block toàn bộ Phase 3 · port 443 outbound · WhatsApp Web protocol</div>
+      </div>
+      <span class="status-tag st-block">Cần làm trước P3</span>
+    </div>
+    <div class="cl-item st-later">
+      <span class="cl-icon">🔒</span>
+      <div class="cl-body">
+        <div class="cl-task">Setup Baileys v7+ + QR scan session</div>
+        <div class="cl-detail">@whiskeysockets/baileys · lưu session tránh scan lại</div>
+      </div>
+      <span class="status-tag st-later">Sau V2Ray</span>
+    </div>
+    <div class="cl-item st-later">
+      <span class="cl-icon">🔒</span>
+      <div class="cl-body">
+        <div class="cl-task">Tạo <code>knowledge_pipeline.js</code></div>
+        <div class="cl-detail">Buffer 5 phút per thread · Qwen 7B classify · Haiku extract · POST /ingest/whatsapp</div>
+      </div>
+      <span class="status-tag st-later">Sau Baileys</span>
+    </div>
+    <div class="cl-item st-later">
+      <span class="cl-icon">🔒</span>
+      <div class="cl-body">
+        <div class="cl-task">Tạo <code>POST /ingest/whatsapp</code> endpoint + privacy filter + sha256 dedup</div>
+      </div>
+      <span class="status-tag st-later">Sau pipeline.js</span>
+    </div>
+    <div class="cl-item st-later">
+      <span class="cl-icon">🔒</span>
+      <div class="cl-body">
+        <div class="cl-task">E2E test: nhắn tin kỹ thuật → wiki → Claude query trong 6 phút</div>
+      </div>
+      <span class="status-tag st-later">Sau tất cả P3</span>
+    </div>
+  </div>
+
+  <!-- ─── PHASE 4 + 5 ─── -->
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--blue);">P4</span>
+    <div>
+      <div class="cl-phase-title">Phase 4 — RAG 2.0</div>
+      <div class="cl-phase-sub">Tháng 9–10/2026 · Block: cần 50 queries thực tế từ Phase 1</div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Thu thập 50 queries + đo baseline precision@5, recall</div></div><span class="status-tag st-later">Sau P1 2+ tuần</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Hybrid Search BM25 + Vector (RRF) · +15–25% recall</div></div><span class="status-tag st-later">Sau baseline</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Reranker Cohere API vs BGE local · +20–35% precision@5</div></div><span class="status-tag st-later">Sau BM25</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Time-aware ranking (α×sim + β×recency_decay)</div></div><span class="status-tag st-later">Sau BM25</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Embedding upgrade multilingual-e5-large (cần re-index)</div></div><span class="status-tag st-later">Cuối cùng</span></div>
+  </div>
+
+  <div class="cl-phase-header">
+    <span class="cl-phase-num" style="background:var(--coral);">P5</span>
+    <div>
+      <div class="cl-phase-title">Phase 5 — Multi-source Consolidation</div>
+      <div class="cl-phase-sub">Tháng 10–12/2026 · Block: Phase 4 done</div>
+    </div>
+  </div>
+  <div class="cl-items">
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Nightly cron 2AM Lima: group by topic, merge similarity &gt; 0.95</div></div><span class="status-tag st-later">Sau P4</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Contradiction detection: Haiku so sánh facts cùng topic</div></div><span class="status-tag st-later">Sau P4</span></div>
+    <div class="cl-item st-later"><span class="cl-icon">🔒</span><div class="cl-body"><div class="cl-task">Knowledge versioning: status active/obsolete + Telegram alert</div></div><span class="status-tag st-later">Sau P4</span></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div style="margin-top:32px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px 24px;">
+    <div style="font-weight:700; font-size:14px; color:var(--gray-d); margin-bottom:14px;">🔥 Làm ngay hôm nay — 8 tasks</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div style="background:var(--teal-l); border-radius:8px; padding:14px;">
+        <div style="font-weight:700; color:var(--teal-d); margin-bottom:8px; font-size:13px;">agentMem0 — Phase 1 (5 tasks)</div>
+        <div style="font-size:12px; color:var(--teal-d); line-height:2;">
+          1. knowledge_extractor.py<br>
+          2. qdrant_helper.py + wiki_knowledge<br>
+          3. app.py gọi extractor<br>
+          4. MCP tool search_wiki<br>
+          5. MCP tool list_wiki_topics
+        </div>
+      </div>
+      <div style="background:var(--amber-l); border-radius:8px; padding:14px;">
+        <div style="font-weight:700; color:var(--amber); margin-bottom:8px; font-size:13px;">syncthingMem0 — WSS (3 tasks)</div>
+        <div style="font-size:12px; color:var(--amber); line-height:2;">
+          1. go.mod + main.go<br>
+          2. WSS transport layer<br>
+          3. JWT bearer-token auth<br>
+          <span style="color:var(--gray);">→ Unblock Phase 2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- FOOTER -->
+<div style="background:var(--gray-d); color:#888; padding:24px 48px; font-size:12px; margin-top:40px;">
+  <div style="max-width:960px; margin:0 auto; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <span>Roadmap 3.0 — Personal AI Knowledge System</span>
+    <span>Hà Ngọc Thanh · vanbienperu3107 · Tháng 6/2026</span>
+    <span>agentMem0 · syncthingMem0 · Apache-2.0</span>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

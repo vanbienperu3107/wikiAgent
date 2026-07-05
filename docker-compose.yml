@@ -1,0 +1,49 @@
+# wikiAgent — standalone dev stack.
+#
+# In production, wiki-api and wiki-mcp attach to the EXISTING agentMem0 Qdrant
+# (set QDRANT_INTERNAL_URL to the shared instance and drop the qdrant service
+# below). No new datastore is introduced — see Roadmap 3.0 design principles.
+version: "3.8"
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  wiki-api:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP: wiki_agent.app:app
+      PORT: "8010"
+      QDRANT_INTERNAL_URL: http://qdrant:6333
+      WIKI_COLLECTION: ${WIKI_COLLECTION:-wiki_knowledge}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      WIKI_AUTH_TOKEN: ${WIKI_AUTH_TOKEN}
+    ports:
+      - "8010:8010"
+    depends_on:
+      - qdrant
+
+  wiki-mcp:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP: wiki_agent.mcp_server:app
+      PORT: "8011"
+      QDRANT_INTERNAL_URL: http://qdrant:6333
+      WIKI_COLLECTION: ${WIKI_COLLECTION:-wiki_knowledge}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      WIKI_MCP_BEARER_TOKEN: ${WIKI_MCP_BEARER_TOKEN}
+    ports:
+      - "8011:8011"
+    depends_on:
+      - qdrant
+
+volumes:
+  qdrant_data:
