@@ -3,6 +3,7 @@
 Endpoints:
     POST /ingest/conversation   Hướng B — AI conversation → extract → store
     POST /ingest/file           Hướng A — Markdown file → store (confidence=1.0)
+    POST /ingest/whatsapp       Phase 3 — WhatsApp thread → classify → extract → store
     GET  /wiki/search           semantic search (backs search_wiki)
     GET  /wiki/topics           topic list (backs list_wiki_topics)
     GET  /health
@@ -17,7 +18,7 @@ from typing import Optional, List
 from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 
-from . import config, knowledge_extractor, embeddings, qdrant_helper, wiki_search
+from . import config, knowledge_extractor, embeddings, qdrant_helper, wiki_search, whatsapp
 
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
@@ -47,6 +48,13 @@ class FileIn(BaseModel):
     content: str
     topic: Optional[str] = None
     tags: List[str] = []
+
+
+class WhatsAppIn(BaseModel):
+    messages: List[dict]           # buffered messages for one thread
+    thread_id: Optional[str] = None  # remoteJid
+    sender: Optional[str] = None     # for contact blacklist
+    backend: Optional[str] = None    # extractor backend override
 
 
 @app.post("/ingest/conversation")
@@ -85,6 +93,22 @@ def ingest_file(body: FileIn, authorization: str = Header(None)):
     vector = embeddings.embed(body.content)
     qdrant_helper.upsert(point_id, vector, payload)
     return {"stored": 1, "source": "file", "id": point_id}
+
+
+@app.post("/ingest/whatsapp")
+def ingest_whatsapp(body: WhatsAppIn, authorization: str = Header(None)):
+    """Phase 3: WhatsApp thread → blacklist/privacy → classify → extract → store.
+
+    The heavy Haiku extraction runs only when the cheap classifier says keep=true.
+    """
+    check(authorization)
+    result = whatsapp.process_thread(
+        body.messages,
+        thread_id=body.thread_id,
+        sender=body.sender,
+        backend=body.backend,
+    )
+    return {"source": "whatsapp", **result}
 
 
 @app.get("/wiki/search")

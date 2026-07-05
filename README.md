@@ -78,6 +78,7 @@ wiki_agent/
 |--------|--------------------------|----------------------------------------------|
 | POST   | `/ingest/conversation`   | Hướng B — extract facts từ transcript        |
 | POST   | `/ingest/file`           | Hướng A — index file Markdown (conf=1.0)     |
+| POST   | `/ingest/whatsapp`       | Phase 3 — thread WhatsApp → classify → extract → store |
 | GET    | `/wiki/search`           | semantic search (`q`, `topic?`, `source?`, `limit`) |
 | GET    | `/wiki/topics`           | danh sách topic + count + sources            |
 | GET    | `/health`                | liveness                                     |
@@ -156,7 +157,7 @@ Repo này hiện thực **Phase 1**. Endpoint & schema đã định hình sẵn 
 |-------|----------|-----------|------------------------|
 | 1 | Wiki Knowledge Layer (conversation → facts) | 6–7/2026 | ✅ đã hiện thực |
 | 2 | File Sync (`/ingest/file`) — chờ syncthingMem0 WSS | 7–8/2026 | ✅ endpoint sẵn sàng |
-| 3 | WhatsApp pipeline — chờ V2Ray proxy | 8–9/2026 | 🔜 `source:"whatsapp"` reserved |
+| 3 | WhatsApp pipeline — chờ V2Ray proxy | 8–9/2026 | ✅ server-side (`/ingest/whatsapp`) · chờ Baileys client |
 | 4 | RAG 2.0 (hybrid BM25+vector, reranker, time-aware) | 9–10/2026 | 🔒 sau 50 query thực tế |
 | 5 | Multi-source consolidation (dedup, contradiction, versioning) | 10–12/2026 | 🔒 nightly job |
 

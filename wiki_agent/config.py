@@ -41,3 +41,23 @@ SKIP_KEYWORDS = [
 
 # Minimum extractor confidence to persist a fact (drops low-value noise).
 MIN_CONFIDENCE = float(os.environ.get("WIKI_MIN_CONFIDENCE", "0.5"))
+
+# ----- WhatsApp source (Phase 3) -----
+# Cheap classifier that decides keep=true/false before the expensive Haiku
+# extraction runs. Qwen 7B on DeepInfra (OpenAI-compatible API); falls back to
+# OpenAI gpt-4o-mini when no DeepInfra key is set.
+DEEPINFRA_API_KEY = os.environ.get("DEEPINFRA_API_KEY")
+WHATSAPP_CLASSIFIER_MODEL = os.environ.get(
+    "WHATSAPP_CLASSIFIER_MODEL", "Qwen/Qwen2.5-7B-Instruct"
+)
+DEEPINFRA_URL = os.environ.get(
+    "DEEPINFRA_URL", "https://api.deepinfra.com/v1/openai/chat/completions"
+)
+
+# Contacts (remoteJid / phone / name fragments) whose messages are never
+# ingested. Deterministic — checked before any LLM call.
+WHATSAPP_CONTACT_BLACKLIST = [
+    c.strip().lower()
+    for c in os.environ.get("WHATSAPP_CONTACT_BLACKLIST", "").split(",")
+    if c.strip()
+]
