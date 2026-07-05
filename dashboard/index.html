@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wikiAgent Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #fafbfc;
+    --border: #e3e6ea;
+    --text: #1b1f24;
+    --muted: #6b7280;
+    --accent: #3b6ef5;
+    --accent-fg: #ffffff;
+    --danger: #e0453e;
+    --ok: #159a5b;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1216;
+      --panel: #171b21;
+      --panel-2: #1d222a;
+      --border: #2a313b;
+      --text: #e6e9ee;
+      --muted: #9aa4b2;
+      --accent: #5b8bff;
+      --accent-fg: #0b1020;
+      --danger: #ff6b63;
+      --ok: #2fbd77;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-bottom: 40px;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header.top {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 14px 0 6px; }
+  .brand h1 { font-size: 18px; margin: 0; letter-spacing: -.2px; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    padding: 0 0 12px;
+    align-items: end;
+  }
+  .settings .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .settings label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  input, textarea, select, button {
+    font: inherit; color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    outline: none;
+    max-width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; width: 100%; }
+  button {
+    cursor: pointer; background: var(--panel-2); font-weight: 500;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  button.primary:hover { opacity: .92; }
+  button.danger { color: var(--danger); border-color: transparent; background: transparent; padding: 4px 8px; }
+  button.danger:hover { border-color: var(--danger); }
+  .tabs { display: flex; gap: 4px; padding: 4px 0 12px; flex-wrap: wrap; }
+  .tabs button {
+    border: none; background: transparent; color: var(--muted);
+    padding: 8px 14px; border-radius: 8px; font-weight: 600;
+  }
+  .tabs button.active { background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+  main { padding-top: 20px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .card .content { font-size: 15px; margin: 0 0 10px; white-space: pre-wrap; word-break: break-word; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .src-conversation { background: #e8f0ff; color: #2456c6; border-color: #cadcff; }
+  .src-file        { background: #e7f7ee; color: #157a48; border-color: #c5ecd4; }
+  .src-whatsapp    { background: #e5f9ec; color: #128c4b; border-color: #bdedcd; }
+  .src-manual      { background: #f3ecff; color: #7038c7; border-color: #e0d0fb; }
+  .src-unknown     { background: var(--panel-2); color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    .src-conversation { background: #17243f; color: #8fb2ff; border-color: #2a3d63; }
+    .src-file        { background: #123125; color: #6fe0a4; border-color: #1f4d38; }
+    .src-whatsapp    { background: #103726; color: #55dd95; border-color: #1c5238; }
+    .src-manual      { background: #241a3d; color: #c1a1f7; border-color: #3a2d5c; }
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .topic-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; gap: 12px;
+  }
+  .topic-row + .topic-row { border-top: 1px solid var(--border); }
+  .topic-name { font-weight: 600; word-break: break-word; }
+  .count-pill { background: var(--accent); color: var(--accent-fg); padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .search-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .search-bar input[type=text] { flex: 1 1 220px; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+  .form-grid { display: grid; gap: 12px; }
+  .form-grid .row2 { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }
+  .form-grid label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 600; }
+  .form-grid input, .form-grid textarea { width: 100%; }
+  .status { padding: 10px 14px; border-radius: 8px; margin: 8px 0 14px; font-size: 14px; display: none; }
+  .status.show { display: block; }
+  .status.err { background: rgba(224,69,62,.12); color: var(--danger); border: 1px solid rgba(224,69,62,.35); }
+  .status.ok  { background: rgba(21,154,91,.12); color: var(--ok); border: 1px solid rgba(21,154,91,.35); }
+  .status.info { background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); }
+  .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+  .score { font-variant-numeric: tabular-nums; }
+  .conf-bar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; vertical-align: middle; }
+  .conf-bar > i { display: block; height: 100%; background: var(--ok); }
+  @media (max-width: 620px) {
+    .settings { grid-template-columns: 1fr; }
+    .form-grid .row2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><h1>wikiAgent Dashboard</h1></div>
+    <div class="settings">
+      <div class="field">
+        <label for="apiUrl">API base URL</label>
+        <input id="apiUrl" type="text" placeholder="http://localhost:8010">
+      </div>
+      <div class="field">
+        <label for="token">Bearer token</label>
+        <input id="token" type="password" placeholder="WIKI_AUTH_TOKEN" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button id="saveBtn">Save</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button data-view="topics" class="active">Topics</button>
+      <button data-view="search">Search</button>
+      <button data-view="add">Add fact</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- TOPICS -->
+  <section id="view-topics" class="view active">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h2 style="font-size:16px;margin:0;">Topics</h2>
+      <button id="reloadTopics">Refresh</button>
+    </div>
+    <div id="topicsStatus" class="status"></div>
+    <div id="topicsList"></div>
+  </section>
+
+  <!-- SEARCH -->
+  <section id="view-search" class="view">
+    <div class="search-bar">
+      <input id="q" type="text" placeholder="Search the wiki…">
+      <label class="toggle"><input id="hybrid" type="checkbox"> hybrid (RAG 2.0)</label>
+      <button id="searchBtn" class="primary">Search</button>
+    </div>
+    <div id="searchStatus" class="status"></div>
+    <div id="searchResults"></div>
+  </section>
+
+  <!-- ADD FACT -->
+  <section id="view-add" class="view">
+    <h2 style="font-size:16px;margin:0 0 12px;">Add a fact</h2>
+    <div id="addStatus" class="status"></div>
+    <form id="addForm" class="card form-grid">
+      <div class="row2">
+        <div>
+          <label for="f-topic">Topic</label>
+          <input id="f-topic" type="text" required placeholder="e.g. deployment">
+        </div>
+        <div>
+          <label for="f-conf">Confidence</label>
+          <input id="f-conf" type="number" min="0" max="1" step="0.05" value="0.9">
+        </div>
+      </div>
+      <div>
+        <label for="f-content">Content</label>
+        <textarea id="f-content" required placeholder="The fact to remember…"></textarea>
+      </div>
+      <div>
+        <label for="f-tags">Tags (comma-separated)</label>
+        <input id="f-tags" type="text" placeholder="infra, prod">
+      </div>
+      <div><button type="submit" class="primary">Add fact</button></div>
+    </form>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var LS_URL = "wa_api_url", LS_TOKEN = "wa_api_token";
+  var DEFAULT_URL = "http://localhost:8010";
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---- settings ----
+  $("apiUrl").value = localStorage.getItem(LS_URL) || DEFAULT_URL;
+  $("token").value = localStorage.getItem(LS_TOKEN) || "";
+
+  function getUrl() { return ($("apiUrl").value || DEFAULT_URL).replace(/\/+$/, ""); }
+  function getToken() { return $("token").value.trim(); }
+
+  $("saveBtn").addEventListener("click", function () {
+    localStorage.setItem(LS_URL, getUrl());
+    localStorage.setItem(LS_TOKEN, getToken());
+    flash("topicsStatus", "info", "Settings saved.");
+    loadTopics();
+  });
+
+  // ---- status helpers ----
+  function flash(id, kind, msg) {
+    var el = $(id);
+    el.className = "status show " + kind;
+    el.textContent = msg;
+  }
+  function clearStatus(id) { $(id).className = "status"; }
+
+  function describeError(status, detail) {
+    if (status === 401) return "Unauthorized (401) — check token.";
+    if (status === 403) return "Forbidden (403) — check token.";
+    if (status === 404) return "Not found (404) — " + (detail || "endpoint/id missing.");
+    if (status === 422) return "Rejected (422) — " + (detail || "invalid input.");
+    if (status === 503) return "Service unavailable (503) — " + (detail || "server not configured.");
+    if (status === 0) return "Network error — is the API running at " + getUrl() + "? (CORS or connection).";
+    return "HTTP " + status + (detail ? " — " + detail : "");
+  }
+
+  // ---- API ----
+  function api(method, path, body) {
+    var opts = {
+      method: method,
+      headers: { "Authorization": "Bearer " + getToken() }
+    };
+    if (body !== undefined) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(getUrl() + path, opts).then(function (res) {
+      var ct = res.headers.get("content-type") || "";
+      var parse = ct.indexOf("json") >= 0 ? res.json() : res.text();
+      return parse.then(function (data) {
+        if (!res.ok) {
+          var detail = data && data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : (typeof data === "string" ? data : "");
+          var err = new Error(describeError(res.status, detail));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    }, function () {
+      var err = new Error(describeError(0));
+      err.status = 0;
+      throw err;
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function srcClass(s) {
+    s = (s || "").toLowerCase();
+    return ["conversation", "file", "whatsapp", "manual"].indexOf(s) >= 0 ? "src-" + s : "src-unknown";
+  }
+  function fmtDate(d) {
+    if (!d) return "";
+    var t = new Date(d);
+    return isNaN(t) ? String(d) : t.toLocaleString();
+  }
+
+  // ---- tabs ----
+  Array.prototype.forEach.call(document.querySelectorAll(".tabs button"), function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tabs button").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      btn.classList.add("active");
+      $("view-" + btn.dataset.view).classList.add("active");
+      if (btn.dataset.view === "topics") loadTopics();
+    });
+  });
+
+  // ---- TOPICS ----
+  function loadTopics() {
+    flash("topicsStatus", "info", "Loading…");
+    api("GET", "/wiki/topics").then(function (topics) {
+      clearStatus("topicsStatus");
+      var box = $("topicsList");
+      if (!topics || !topics.length) { box.innerHTML = '<div class="empty">No topics yet.</div>'; return; }
+      var html = '<div class="card" style="padding:0;">';
+      topics.forEach(function (t) {
+        var badges = (t.sources || []).map(function (s) {
+          return '<span class="badge ' + srcClass(s) + '">' + esc(s) + "</span>";
+        }).join(" ");
+        html += '<div class="topic-row">' +
+          '<div style="min-width:0;"><div class="topic-name">' + esc(t.topic) + "</div>" +
+          '<div class="meta" style="margin-top:4px;">' + (badges || '<span class="badge src-unknown">no source</span>') + "</div></div>" +
+          '<span class="count-pill">' + esc(t.count) + (t.count === 1 ? " fact" : " facts") + "</span></div>";
+      });
+      html += "</div>";
+      box.innerHTML = html;
+    }).catch(function (e) {
+      $("topicsList").innerHTML = "";
+      flash("topicsStatus", "err", e.message);
+    });
+  }
+  $("reloadTopics").addEventListener("click", loadTopics);
+
+  // ---- SEARCH ----
+  function runSearch() {
+    var q = $("q").value.trim();
+    if (!q) { flash("searchStatus", "info", "Enter a query."); return; }
+    flash("searchStatus", "info", "Searching…");
+    var path = "/wiki/search?q=" + encodeURIComponent(q) + "&limit=10" + ($("hybrid").checked ? "&hybrid=true" : "");
+    api("GET", path).then(function (results) {
+      renderResults(results);
+    }).catch(function (e) {
+      $("searchResults").innerHTML = "";
+      flash("searchStatus", "err", e.message);
+    });
+  }
+  function renderResults(results) {
+    var box = $("searchResults");
+    if (!results || !results.length) {
+      clearStatus("searchStatus");
+      box.innerHTML = '<div class="empty">No results.</div>';
+      return;
+    }
+    flash("searchStatus", "info", results.length + " result" + (results.length === 1 ? "" : "s"));
+    box.innerHTML = results.map(function (r) {
+      var conf = typeof r.confidence === "number" ? r.confidence : null;
+      var confHtml = conf === null ? "" :
+        '<span class="meta">conf <span class="conf-bar"><i style="width:' + Math.round(conf * 100) + '%"></i></span> ' + conf.toFixed(2) + "</span>";
+      var score = typeof r.score === "number" ? '<span class="badge">score ' + r.score.toFixed(3) + "</span>" : "";
+      return '<div class="card">' +
+        '<div class="card-head">' +
+          '<p class="content">' + esc(r.content) + "</p>" +
+          '<button class="danger" data-id="' + esc(r.id) + '" title="Delete fact">Delete</button>' +
+        "</div>" +
+        '<div class="meta">' +
+          (r.topic ? '<span class="badge">#' + esc(r.topic) + "</span>" : "") +
+          '<span class="badge ' + srcClass(r.source) + '">' + esc(r.source || "unknown") + "</span>" +
+          score + confHtml +
+          (r.updated_at ? "<span>updated " + esc(fmtDate(r.updated_at)) + "</span>" : "") +
+        "</div></div>";
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll("button.danger"), function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.dataset.id;
+        if (!confirm("Delete this fact?")) return;
+        btn.disabled = true; btn.textContent = "…";
+        api("DELETE", "/wiki/fact/" + encodeURIComponent(id)).then(function () {
+          flash("searchStatus", "ok", "Deleted. Refreshing…");
+          runSearch();
+        }).catch(function (e) {
+          btn.disabled = false; btn.textContent = "Delete";
+          flash("searchStatus", "err", e.message);
+        });
+      });
+    });
+  }
+  $("searchBtn").addEventListener("click", runSearch);
+  $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") runSearch(); });
+
+  // ---- ADD FACT ----
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var tags = $("f-tags").value.split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+    var conf = parseFloat($("f-conf").value);
+    var body = {
+      topic: $("f-topic").value.trim(),
+      content: $("f-content").value.trim(),
+      tags: tags,
+      confidence: isNaN(conf) ? 0.9 : conf
+    };
+    flash("addStatus", "info", "Saving…");
+    api("POST", "/wiki/fact", body).then(function () {
+      flash("addStatus", "ok", "Fact added.");
+      $("f-content").value = ""; $("f-tags").value = "";
+    }).catch(function (err) {
+      flash("addStatus", "err", err.message);
+    });
+  });
+
+  // initial load
+  loadTopics();
+})();
+</script>
+</body>
+</html>

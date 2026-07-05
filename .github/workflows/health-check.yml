@@ -1,0 +1,44 @@
+name: Health check
+
+# Pings the public health endpoint every 30 minutes. On a non-200 it fires a
+# Telegram alert with pure bash + curl (no Python deps). If Telegram secrets
+# are missing the step simply fails, so the red X in Actions is the signal.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+env:
+  HEALTH_URL: "https://claude.hangocthanh.io.vn/health"
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl health endpoint
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -u
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$HEALTH_URL" || echo "000")
+          echo "Health check $HEALTH_URL -> $code"
+          if [ "$code" = "200" ]; then
+            echo "Healthy."
+            exit 0
+          fi
+
+          echo "::error::Health check failed for $HEALTH_URL (HTTP $code)"
+
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "::error::Telegram secrets absent — cannot alert; failing the step."
+            exit 1
+          fi
+
+          curl -s --max-time 20 \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=🚨 wikiAgent health check FAILED: ${HEALTH_URL} returned HTTP ${code}" \
+            > /dev/null || echo "::warning::Telegram send failed."
+
+          exit 1

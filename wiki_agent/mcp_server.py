@@ -16,7 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import config, wiki_search, rag, fact_crud
+from . import config, wiki_search, rag, fact_crud, query_log
 
 app = FastAPI(
     title="wikiAgent MCP HTTP",
@@ -101,17 +101,24 @@ def _check_auth(request: Request) -> bool:
 
 def exec_tool(name: str, args: dict):
     if name == "search_wiki":
-        if args.get("hybrid"):
-            return rag.hybrid_search(
+        limit = args.get("limit", 5)
+        hybrid = bool(args.get("hybrid"))
+        if hybrid:
+            results = rag.hybrid_search(
                 args["query"], topic=args.get("topic"),
-                source=args.get("source"), limit=args.get("limit", 5),
+                source=args.get("source"), limit=limit,
             )
-        return wiki_search.search_wiki(
-            args["query"],
-            topic=args.get("topic"),
-            source=args.get("source"),
-            limit=args.get("limit", 5),
+        else:
+            results = wiki_search.search_wiki(
+                args["query"], topic=args.get("topic"),
+                source=args.get("source"), limit=limit,
+            )
+        query_log.log_query(
+            args["query"], len(results),
+            mode=("hybrid" if hybrid else "semantic"), topic=args.get("topic"),
+            top_ids=[r.get("id") for r in results[:5]],
         )
+        return results
     if name == "list_wiki_topics":
         return wiki_search.list_wiki_topics()
     if name == "add_wiki_fact":

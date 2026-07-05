@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — hardening, RAG data-loop, automation, dashboard
+
+- **Reranker** (`reranker.py`): optional Cohere rerank stage — `?rerank=true` on
+  `/wiki/search`. Passthrough (safe) when no `COHERE_API_KEY`.
+- **Query telemetry** (`query_log.py`): every search is logged (JSONL);
+  `GET /wiki/query-stats` aggregates it — the data behind "measure before tuning".
+- **Phase 5 automation**: `notify.py` (Telegram contradiction alerts, wired into
+  the consolidation runner) + `.github/workflows/consolidation-nightly.yml`
+  (02:00 Lima cron, dry-run default) + `health-check.yml` (30-min uptime ping).
+- **Dashboard** (`dashboard/index.html`): self-contained static UI — browse
+  topics, search (+hybrid), add/delete facts. REST API now sends CORS headers.
+- **Integration tests** (`tests/integration/`): real-Qdrant e2e (docker-compose)
+  with a deterministic stub embedder; auto-skips when no Qdrant is running.
+- Full suite: 78 passing + 1 auto-skip (integration).
+
 ## 0.2.0 — Phases 3–5 + manual CRUD (all sources + retrieval + consolidation)
 
 - **RAG 2.0** (`rag.py`, Phase 4): `hybrid_search()` — dense vector pool +

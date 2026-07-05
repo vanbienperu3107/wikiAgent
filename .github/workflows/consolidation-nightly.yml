@@ -1,0 +1,47 @@
+name: Consolidation (nightly)
+
+# Nightly Phase 5 consolidation. Dry-run by default; a manual run can flip
+# APPLY on. 07:00 UTC ≈ 02:00 Lima (UTC-5).
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Actually mark duplicates obsolete (facts are never deleted)"
+        type: boolean
+        default: false
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    env:
+      QDRANT_INTERNAL_URL: ${{ secrets.QDRANT_INTERNAL_URL }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      WIKI_COLLECTION: ${{ secrets.WIKI_COLLECTION }}
+      CHECK_CONTRADICTIONS: "true"
+      APPLY: ${{ github.event.inputs.apply == 'true' && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Guard required secrets
+        run: |
+          if [ -z "$QDRANT_INTERNAL_URL" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::Required secrets (QDRANT_INTERNAL_URL / ANTHROPIC_API_KEY) absent — skipping consolidation."
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install deps
+        if: env.SKIP != 'true'
+        run: pip install -r requirements.txt
+
+      - name: Run consolidation
+        if: env.SKIP != 'true'
+        run: python -m scripts.run_consolidation

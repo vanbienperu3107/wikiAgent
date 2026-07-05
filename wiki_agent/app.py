@@ -4,9 +4,10 @@ Endpoints:
     POST /ingest/conversation   Hướng B — AI conversation → extract → store
     POST /ingest/file           Hướng A — Markdown file → store (confidence=1.0)
     POST /ingest/whatsapp       Phase 3 — WhatsApp thread → classify → extract → store
-    GET  /wiki/search           semantic search (+ hybrid RAG 2.0 via ?hybrid=true)
+    GET  /wiki/search           semantic search (?hybrid RAG 2.0, ?rerank Cohere); logged
     POST /wiki/fact             manual add (source="manual", conf=1.0)
     DELETE /wiki/fact/{id}      manual delete
+    GET  /wiki/query-stats      search-query telemetry (for RAG tuning)
     GET  /wiki/topics           topic list (backs list_wiki_topics)
     GET  /health
 
@@ -18,17 +19,28 @@ import datetime
 from typing import Optional, List
 
 from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import (
     config, knowledge_extractor, embeddings, qdrant_helper, wiki_search,
-    whatsapp, rag, fact_crud,
+    whatsapp, rag, fact_crud, reranker, query_log,
 )
 
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
     description="Multi-source structured knowledge for the Personal AI Knowledge System.",
-    version="0.2.0",
+    version="0.3.0",
+)
+
+# CORS so the static dashboard (and other browser clients) can call this API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=3600,
 )
 
 # Deterministic namespace for file-source ids (uuid5 of path → auto-dedup).
@@ -133,12 +145,24 @@ def wiki_search_endpoint(
     limit: int = 5,
     hybrid: bool = Query(False, description="RAG 2.0: hybrid dense+BM25 with RRF"),
     beta: float = Query(0.0, description="Recency weight (0=off) for time-aware re-rank"),
+    rerank: bool = Query(False, description="Apply Cohere reranker (needs COHERE_API_KEY)"),
     authorization: str = Header(None),
 ):
     check(authorization)
     if hybrid:
-        return rag.hybrid_search(q, limit=limit, topic=topic, source=source, beta=beta)
-    return wiki_search.search_wiki(q, topic=topic, source=source, limit=limit)
+        # widen the pool a bit when reranking so the reranker has candidates to sort
+        pool = max(limit, 20) if rerank else limit
+        results = rag.hybrid_search(q, limit=pool, topic=topic, source=source, beta=beta)
+    else:
+        results = wiki_search.search_wiki(q, topic=topic, source=source, limit=limit)
+    if rerank:
+        results = reranker.rerank(q, results, top_n=limit)
+    query_log.log_query(
+        q, len(results),
+        mode=("hybrid" if hybrid else "semantic"), topic=topic,
+        top_ids=[r.get("id") for r in results[:5]],
+    )
+    return results
 
 
 @app.post("/wiki/fact")
@@ -159,6 +183,13 @@ def delete_fact_endpoint(point_id: str, authorization: str = Header(None)):
     check(authorization)
     fact_crud.delete_fact(point_id)
     return {"deleted": point_id}
+
+
+@app.get("/wiki/query-stats")
+def query_stats_endpoint(authorization: str = Header(None)):
+    """Aggregated search-query telemetry — the data behind 'measure before RAG tuning'."""
+    check(authorization)
+    return query_log.stats()
 
 
 @app.get("/wiki/topics")

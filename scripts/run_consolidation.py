@@ -13,7 +13,7 @@ import os
 import json
 import httpx
 
-from wiki_agent import config, consolidation
+from wiki_agent import config, consolidation, notify
 
 
 def _headers() -> dict:
@@ -54,6 +54,10 @@ def main() -> None:
         points, contradiction_check=contradiction, apply=apply
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2, default=str))
+    # Alert on contradictions (no-op if none found or Telegram creds absent).
+    contradictions = summary.get("contradictions") or []
+    if contradictions:
+        notify.alert_contradictions(contradictions)
 
 
 if __name__ == "__main__":
