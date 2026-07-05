@@ -1,10 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "wikiagent"
+name = "wiki-agent"
 version = "0.1.0"
 description = "Wiki Knowledge Layer — multi-source structured knowledge for the Personal AI Knowledge System"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
+dependencies = [
+    "httpx>=0.27",
+]
+
+[tool.setuptools]
+packages = ["wiki_agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
