@@ -2,6 +2,11 @@
 
 ## 0.3.0 — hardening, RAG data-loop, automation, dashboard
 
+- **REST hardening**: in-memory sliding-window rate limiter (`ratelimit.py`,
+  `WIKI_RATE_LIMIT`/`WINDOW`, wired into auth) + a JSON exception handler (no
+  stack-trace leaks; avoids the Starlette Content-Length bug) + CORS.
+- README refreshed to the full v0.3.0 feature set + module map.
+
 - **Reranker** (`reranker.py`): optional Cohere rerank stage — `?rerank=true` on
   `/wiki/search`. Passthrough (safe) when no `COHERE_API_KEY`.
 - **Query telemetry** (`query_log.py`): every search is logged (JSONL);

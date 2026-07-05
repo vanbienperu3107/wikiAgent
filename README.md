@@ -1,11 +1,16 @@
 # wikiAgent — Wiki Knowledge Layer
 
-> **Phase 1 of Roadmap 3.0 — Personal AI Knowledge System**
+> **Roadmap 3.0 — Personal AI Knowledge System**
 > *Từ mem0custom đến multi-source knowledge base tự động.*
 >
-> Biến mọi cuộc hội thoại AI (và sau này là file Markdown & WhatsApp) thành
+> Biến mọi cuộc hội thoại AI, file Markdown & tin nhắn WhatsApp thành
 > **knowledge có cấu trúc, tìm kiếm được**, để Claude & ChatGPT truy cập qua
 > MCP/REST từ bất kỳ client nào.
+
+**Tính năng (v0.3.0):** 3 nguồn ingest (`conversation` · `file` · `whatsapp`) ·
+semantic + **hybrid RAG 2.0** (BM25+vector RRF) + **reranker** · query telemetry ·
+**consolidation** (dedup / contradiction / versioning) · CRUD tay · **dashboard** ·
+Baileys client · nightly automation + Telegram alert · rate-limit · integration tests.
 
 `wikiAgent` là **trung tâm kết hợp nhiều nguồn (multi-source)**: nó gom
 knowledge từ 3 nguồn khác nhau vào **một** collection Qdrant duy nhất
@@ -52,10 +57,24 @@ wiki_agent/
 ├── config.py             # gom toàn bộ env var
 ├── embeddings.py         # OpenAI text-embedding-3-small (1536 dims)
 ├── qdrant_helper.py      # collection wiki_knowledge: ensure / upsert / search / scroll
-├── knowledge_extractor.py# privacy filter → Haiku extract → embed + store
+├── knowledge_extractor.py# privacy filter → Haiku extract → embed + store (nguồn conversation)
+├── whatsapp.py           # nguồn whatsapp: blacklist → Qwen classify → extract → store
+├── fact_crud.py          # thêm/xóa/sửa fact tay (source="manual")
 ├── wiki_search.py        # search_wiki() + list_wiki_topics()
-├── app.py                # REST API (FastAPI): ingest + query
+├── rag.py                # RAG 2.0: hybrid dense+BM25 (RRF) + time-aware
+├── reranker.py           # tầng rerank Cohere (tùy chọn)
+├── query_log.py          # telemetry query (cho việc đo trước khi tối ưu)
+├── consolidation.py      # Phase 5: dedup / contradiction / versioning
+├── notify.py             # Telegram alert
+├── ratelimit.py          # rate limiter in-memory
+├── app.py                # REST API (FastAPI): ingest + query + CRUD + stats
 └── mcp_server.py         # MCP HTTP server (Streamable HTTP, JSON-RPC)
+
+scripts/run_consolidation.py   # nightly consolidation runner
+whatsapp-agent/                # client Node.js (Baileys) — nguồn whatsapp
+dashboard/index.html           # UI tĩnh tự chứa (browse/search/CRUD)
+tests/  + tests/integration/   # 83 unit (mock) + e2e Qdrant thật (auto-skip)
+.github/workflows/             # CI · consolidation-nightly · health-check
 ```
 
 ### Schema payload `wiki_knowledge`

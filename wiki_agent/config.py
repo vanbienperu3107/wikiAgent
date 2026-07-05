@@ -42,6 +42,10 @@ SKIP_KEYWORDS = [
 # Minimum extractor confidence to persist a fact (drops low-value noise).
 MIN_CONFIDENCE = float(os.environ.get("WIKI_MIN_CONFIDENCE", "0.5"))
 
+# REST rate limit: max requests per window per token (0 = disabled).
+RATE_LIMIT = int(os.environ.get("WIKI_RATE_LIMIT", "120"))
+RATE_WINDOW = float(os.environ.get("WIKI_RATE_WINDOW", "60"))
+
 # ----- WhatsApp source (Phase 3) -----
 # Cheap classifier that decides keep=true/false before the expensive Haiku
 # extraction runs. Qwen 7B on DeepInfra (OpenAI-compatible API); falls back to

@@ -18,13 +18,14 @@ import uuid
 import datetime
 from typing import Optional, List
 
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from . import (
     config, knowledge_extractor, embeddings, qdrant_helper, wiki_search,
-    whatsapp, rag, fact_crud, reranker, query_log,
+    whatsapp, rag, fact_crud, reranker, query_log, ratelimit,
 )
 
 app = FastAPI(
@@ -52,6 +53,20 @@ def check(token: Optional[str]) -> None:
         raise HTTPException(503, "WIKI_AUTH_TOKEN not configured")
     if not token or token != f"Bearer {config.WIKI_AUTH_TOKEN}":
         raise HTTPException(401, "Unauthorized")
+    # One global bucket (single shared token); tune via WIKI_RATE_LIMIT/WINDOW.
+    if not ratelimit.check_rate("rest", config.RATE_LIMIT, config.RATE_WINDOW):
+        raise HTTPException(429, "Rate limit exceeded")
+
+
+@app.exception_handler(Exception)
+async def _unhandled(request: Request, exc: Exception):
+    """Return JSON on unexpected errors instead of leaking a stack trace.
+
+    Uses an exception handler (not BaseHTTPMiddleware) to avoid the Starlette
+    Content-Length bug with multi-byte UTF-8 bodies.
+    """
+    print(f"Unhandled error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse({"error": "internal_error"}, status_code=500)
 
 
 class ConversationIn(BaseModel):
