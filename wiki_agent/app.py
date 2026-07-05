@@ -32,7 +32,7 @@ from . import (
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
     description="Multi-source structured knowledge for the Personal AI Knowledge System.",
-    version="0.3.2",
+    version="0.3.3",
 )
 
 # CORS so the static dashboard (and other browser clients) can call this API.
@@ -55,6 +55,19 @@ def check(token: Optional[str]) -> None:
     if not token or not hmac.compare_digest(token, f"Bearer {config.WIKI_AUTH_TOKEN}"):
         raise HTTPException(401, "Unauthorized")
     # One global bucket (single shared token); tune via WIKI_RATE_LIMIT/WINDOW.
+    if not ratelimit.check_rate("rest", config.RATE_LIMIT, config.RATE_WINDOW):
+        raise HTTPException(429, "Rate limit exceeded")
+
+
+def check_admin(token: Optional[str]) -> None:
+    """Guard destructive ops. If WIKI_ADMIN_TOKEN is set, require it (least
+    privilege — a read/write token can't delete). Otherwise fall back to the
+    normal token so single-token deploys keep working."""
+    if not config.WIKI_ADMIN_TOKEN:
+        check(token)
+        return
+    if not token or not hmac.compare_digest(token, f"Bearer {config.WIKI_ADMIN_TOKEN}"):
+        raise HTTPException(403, "Admin token required for this operation")
     if not ratelimit.check_rate("rest", config.RATE_LIMIT, config.RATE_WINDOW):
         raise HTTPException(429, "Rate limit exceeded")
 
@@ -199,7 +212,7 @@ def add_fact_endpoint(body: FactIn, authorization: str = Header(None)):
 
 @app.delete("/wiki/fact/{point_id}")
 def delete_fact_endpoint(point_id: str, authorization: str = Header(None)):
-    check(authorization)
+    check_admin(authorization)  # destructive → admin token if configured
     fact_crud.delete_fact(point_id)
     return {"deleted": point_id}
 

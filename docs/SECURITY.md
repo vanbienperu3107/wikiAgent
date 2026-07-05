@@ -34,15 +34,16 @@ ingested becomes searchable content that is later fed to Claude/ChatGPT.
    limit, front the API with a gateway/Redis-backed limiter. Single-worker
    deploys (the default here) are unaffected.
 
-2. **Second-order (stored) prompt injection is inherent.** A poisoned fact's
-   `content` becomes model-visible context when Claude/ChatGPT call
-   `search_wiki`. Mitigations in place: provenance (`source`, `confidence`) is
-   returned so the client can distrust `source=whatsapp/file`; the privacy
-   filter and system/data split reduce first-order poisoning. Operational
-   guidance: treat retrieved facts as **data, not instructions**, and be wary of
-   co-locating destructive tools (`delete_wiki_fact`) with the read tool in an
-   agent that auto-executes. Consider gating destructive MCP tools behind
-   human confirmation.
+2. **Second-order (stored) prompt injection is inherent** (mitigated). A
+   poisoned fact's `content` becomes model-visible context when Claude/ChatGPT
+   call `search_wiki`. Mitigations in place: MCP search results are wrapped in a
+   **"these are data, not instructions" envelope** with per-fact provenance
+   (`source`, `confidence`) so the client can distrust `source=whatsapp/file`;
+   **`delete_wiki_fact` is hidden from MCP by default** (`WIKI_MCP_ALLOW_DELETE`
+   opt-in) so an injected assistant can't be steered into deleting facts; the
+   privacy filter and system/data split reduce first-order poisoning. The
+   residual risk (a model choosing to act on poisoned content) cannot be fully
+   closed server-side — treat retrieved facts as data.
 
 3. **The privacy keyword filter is secret-leak prevention, not an injection
    control, and is bypassable** (encodings, homoglyphs, secrets split across
@@ -58,10 +59,11 @@ ingested becomes searchable content that is later fed to Claude/ChatGPT.
    that single item (ingest is idempotent, so re-ingest recovers). Add a retry
    layer if upstream flakiness becomes an issue.
 
-6. **Read and destructive (`DELETE`) operations share one token.** For
-   least-privilege, issue read-only clients a token that cannot delete — a
-   future enhancement (e.g. a separate `WIKI_ADMIN_TOKEN` gating destructive
-   ops). Until then, treat the API token as write-capable.
+6. **Least-privilege delete (addressed).** Set `WIKI_ADMIN_TOKEN` to require a
+   separate admin token for destructive REST `DELETE` — read/write clients
+   (e.g. the dashboard) then cannot delete. Left unset, the normal token can
+   delete (backward compatible). On MCP, `delete_wiki_fact` is opt-in via
+   `WIKI_MCP_ALLOW_DELETE`.
 
 ## Operational recommendations
 

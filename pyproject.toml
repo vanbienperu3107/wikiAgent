@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wiki-agent"
-version = "0.3.2"
+version = "0.3.3"
 description = "Wiki Knowledge Layer — multi-source structured knowledge for the Personal AI Knowledge System"
 readme = "README.md"
 requires-python = ">=3.10"

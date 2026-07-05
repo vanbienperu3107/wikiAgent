@@ -44,6 +44,12 @@ OPENAI_EXTRACTOR_MODEL = os.environ.get("WIKI_OPENAI_EXTRACTOR_MODEL", "gpt-4o-m
 # ----- API auth -----
 WIKI_AUTH_TOKEN = os.environ.get("WIKI_AUTH_TOKEN", "")
 MCP_BEARER_TOKEN = os.environ.get("WIKI_MCP_BEARER_TOKEN", "")
+# Optional least-privilege split: when set, destructive REST ops (DELETE) require
+# THIS token instead of the read/write token. Unset → falls back to WIKI_AUTH_TOKEN.
+WIKI_ADMIN_TOKEN = os.environ.get("WIKI_ADMIN_TOKEN", "")
+# Whether the MCP server exposes the destructive delete_wiki_fact tool. Default
+# off so a prompt-injected assistant can't be steered into deleting facts.
+WIKI_MCP_ALLOW_DELETE = os.environ.get("WIKI_MCP_ALLOW_DELETE", "").lower() in ("1", "true", "yes")
 
 # ----- Privacy filter -----
 # Keywords that, if present in a message, block that message from ever being
