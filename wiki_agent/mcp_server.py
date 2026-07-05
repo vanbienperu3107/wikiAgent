@@ -10,13 +10,14 @@ Tools:
 Auth: clients must send `Authorization: Bearer <WIKI_MCP_BEARER_TOKEN>`.
 """
 from __future__ import annotations
+import hmac
 import json
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import config, wiki_search, rag, fact_crud, query_log
+from . import config, wiki_search, rag, fact_crud, query_log, ratelimit
 
 app = FastAPI(
     title="wikiAgent MCP HTTP",
@@ -96,7 +97,7 @@ def _check_auth(request: Request) -> bool:
         return False
     auth = request.headers.get("authorization", "")
     token = auth[7:] if auth.startswith("Bearer ") else ""
-    return token == config.MCP_BEARER_TOKEN
+    return hmac.compare_digest(token, config.MCP_BEARER_TOKEN)
 
 
 def exec_tool(name: str, args: dict):
@@ -142,6 +143,15 @@ async def mcp_endpoint(request: Request):
     method = body.get("method")
     req_id = body.get("id")
 
+    # One global bucket (single shared token); tune via WIKI_RATE_LIMIT/WINDOW.
+    # Gates tools/call (add/delete/search) against a runaway or leaked token.
+    if not ratelimit.check_rate("mcp", config.RATE_LIMIT, config.RATE_WINDOW):
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32000, "message": "rate limit exceeded"},
+        }
+
     if method == "initialize":
         return {
             "jsonrpc": "2.0",
@@ -176,11 +186,13 @@ async def mcp_endpoint(request: Request):
                 },
             }
         except Exception as e:  # noqa: BLE001 — surface as MCP error content
+            # Don't leak internals (Qdrant URL/collection, stack) to the client.
+            print(f"MCP tool execution error [{name}]: {e}")
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
                 "result": {
-                    "content": [{"type": "text", "text": f"Error: {e}"}],
+                    "content": [{"type": "text", "text": "tool execution error"}],
                     "isError": True,
                 },
             }

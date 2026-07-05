@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import math
 import re
+from datetime import datetime
 from typing import List, Optional, Sequence
 
 import httpx
@@ -223,19 +224,45 @@ def set_status(point_id, status: str, timeout: float = 30) -> None:
 # 4. Orchestrator
 # ============================================================
 
+# Source trust tiers — a survivor is chosen by trust FIRST, so a poisoned
+# low-trust fact with a self-asserted confidence=1.0 can never obsolete a real
+# higher-trust one. Unknown sources fall below every known tier.
+_SOURCE_TIER = {"manual": 3, "conversation": 2, "file": 1, "whatsapp": 0}
+
+
+def _parse_dt(value) -> datetime:
+    """Parse an ISO 8601 timestamp for ranking; min datetime on failure.
+
+    Handles a trailing ``Z`` (UTC) which ``datetime.fromisoformat`` rejects on
+    older Pythons, so mixed ISO offsets order correctly instead of by string.
+    """
+    s = str(value or "").strip()
+    if not s:
+        return datetime.min
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return datetime.min
+
+
 def _rank_key(point: dict):
     """Sort key for picking the survivor of a duplicate group.
 
-    Highest confidence wins; ties broken by newest ``updated_at`` (then
-    ``created_at``). Returns a tuple where larger is better.
+    Ranked by SOURCE TRUST TIER first, then confidence, then recency
+    (``updated_at`` falling back to ``created_at``). Returns a tuple where
+    larger is better. Trust-first stops a low-trust fact with a self-asserted
+    confidence from obsoleting a real one.
     """
     payload = point.get("payload") or {}
+    tier = _SOURCE_TIER.get(str(payload.get("source", "")).strip().lower(), -1)
     try:
         confidence = float(payload.get("confidence", 0.0))
     except (TypeError, ValueError):
         confidence = 0.0
-    updated = str(payload.get("updated_at", "") or payload.get("created_at", ""))
-    return (confidence, updated)
+    updated = _parse_dt(payload.get("updated_at") or payload.get("created_at"))
+    return (tier, confidence, updated)
 
 
 def consolidate(

@@ -15,6 +15,7 @@ All math uses only the stdlib (math, datetime, re, collections).
 from __future__ import annotations
 import math
 import re
+import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -24,14 +25,19 @@ from . import embeddings, qdrant_helper
 # RRF constant — the canonical value from the original TREC formulation.
 _RRF_K = 60
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
+_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 
 
 def _tokenize(text: Optional[str]) -> List[str]:
-    """Lowercase and split on non-alphanumerics. Blank/None -> []."""
+    """Lowercase, NFC-normalize, and split on non-word chars. Blank/None -> [].
+
+    Uses a Unicode-aware pattern so accented scripts (e.g. Vietnamese) yield
+    whole words rather than ASCII fragments.
+    """
     if not text:
         return []
-    return _TOKEN_RE.findall(text.lower())
+    normalized = unicodedata.normalize("NFC", text.lower())
+    return _TOKEN_RE.findall(normalized)
 
 
 def _bm25_scores(query: str, docs: List[List[str]]) -> List[float]:
@@ -85,7 +91,10 @@ def _recency(updated_at: Optional[str], halflife_days: float) -> float:
     if not updated_at:
         return 0.0
     try:
-        dt = datetime.fromisoformat(updated_at)
+        ts = updated_at
+        if isinstance(ts, str) and ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        dt = datetime.fromisoformat(ts)
     except (ValueError, TypeError):
         return 0.0
     if dt.tzinfo is None:

@@ -15,13 +15,14 @@ Auth: every non-health endpoint needs `Authorization: Bearer <WIKI_AUTH_TOKEN>`.
 """
 from __future__ import annotations
 import uuid
+import hmac
 import datetime
 from typing import Optional, List
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import (
     config, knowledge_extractor, embeddings, qdrant_helper, wiki_search,
@@ -31,7 +32,7 @@ from . import (
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
     description="Multi-source structured knowledge for the Personal AI Knowledge System.",
-    version="0.3.1",
+    version="0.3.2",
 )
 
 # CORS so the static dashboard (and other browser clients) can call this API.
@@ -51,7 +52,7 @@ _FILE_NS = uuid.UUID("00000000-0000-0000-0000-000000000042")
 def check(token: Optional[str]) -> None:
     if not config.WIKI_AUTH_TOKEN:
         raise HTTPException(503, "WIKI_AUTH_TOKEN not configured")
-    if not token or token != f"Bearer {config.WIKI_AUTH_TOKEN}":
+    if not token or not hmac.compare_digest(token, f"Bearer {config.WIKI_AUTH_TOKEN}"):
         raise HTTPException(401, "Unauthorized")
     # One global bucket (single shared token); tune via WIKI_RATE_LIMIT/WINDOW.
     if not ratelimit.check_rate("rest", config.RATE_LIMIT, config.RATE_WINDOW):
@@ -70,20 +71,20 @@ async def _unhandled(request: Request, exc: Exception):
 
 
 class ConversationIn(BaseModel):
-    transcript: List[dict]
+    transcript: List[dict] = Field(..., max_length=5000)
     session_id: Optional[str] = None
     backend: Optional[str] = None  # 'anthropic' | 'openai'
 
 
 class FileIn(BaseModel):
     path: str
-    content: str
+    content: str = Field(..., max_length=200_000)
     topic: Optional[str] = None
     tags: List[str] = []
 
 
 class WhatsAppIn(BaseModel):
-    messages: List[dict]           # buffered messages for one thread
+    messages: List[dict] = Field(..., max_length=5000)  # buffered messages for one thread
     thread_id: Optional[str] = None  # remoteJid
     sender: Optional[str] = None     # for contact blacklist
     backend: Optional[str] = None    # extractor backend override
@@ -91,7 +92,7 @@ class WhatsAppIn(BaseModel):
 
 class FactIn(BaseModel):
     topic: str
-    content: str
+    content: str = Field(..., max_length=200_000)
     tags: List[str] = []
     confidence: float = 1.0
     source: str = "manual"
@@ -164,6 +165,9 @@ def wiki_search_endpoint(
     authorization: str = Header(None),
 ):
     check(authorization)
+    # An empty query would trigger an empty-string embedding call (400 upstream).
+    if not q.strip():
+        return []
     if hybrid:
         # widen the pool a bit when reranking so the reranker has candidates to sort
         pool = max(limit, 20) if rerank else limit

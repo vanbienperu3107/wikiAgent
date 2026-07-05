@@ -9,9 +9,17 @@ from __future__ import annotations
 
 import json
 import os
-from collections import Counter, defaultdict
+import threading
+from collections import Counter, defaultdict, deque
 from datetime import datetime, timezone
 from typing import List, Optional
+
+# Guards the file append: concurrent threadpool writers can otherwise interleave
+# partial lines into the JSONL.
+_write_lock = threading.Lock()
+
+# Cap how much history stats() scans so the log can't grow unbounded work.
+_STATS_WINDOW = 5000
 
 
 def _log_path() -> str:
@@ -47,8 +55,9 @@ def log_query(
         parent = os.path.dirname(path)
         if parent:
             os.makedirs(parent, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
+        with _write_lock:
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
     except Exception:
         # Telemetry is best-effort; swallow everything.
         return
@@ -57,10 +66,12 @@ def log_query(
 def read_queries(limit: int = 1000) -> List[dict]:
     """Read back logged queries (most recent last), tolerating bad lines.
 
-    Returns at most `limit` records, keeping the most recent ones.
+    Returns at most `limit` records, keeping the most recent ones. When `limit`
+    is set the records are streamed through a bounded deque so an arbitrarily
+    large log never has to be held in memory all at once.
     """
     path = _log_path()
-    records: List[dict] = []
+    sink = deque(maxlen=limit) if limit is not None else deque()
     try:
         with open(path, "r", encoding="utf-8") as fh:
             for raw in fh:
@@ -72,14 +83,12 @@ def read_queries(limit: int = 1000) -> List[dict]:
                 except (ValueError, TypeError):
                     continue
                 if isinstance(obj, dict):
-                    records.append(obj)
+                    sink.append(obj)
     except FileNotFoundError:
         return []
     except Exception:
-        return records
-    if limit is not None and len(records) > limit:
-        records = records[-limit:]
-    return records
+        return list(sink)
+    return list(sink)
 
 
 def _normalize(query: object) -> str:
@@ -89,8 +98,12 @@ def _normalize(query: object) -> str:
 
 
 def stats() -> dict:
-    """Aggregate the query log. Pure — reads the file, computes summary."""
-    records = read_queries(limit=10**9)
+    """Aggregate the query log. Pure — reads the file, computes summary.
+
+    Only the most recent `_STATS_WINDOW` events are scanned so a large log
+    doesn't force reading the whole file into memory on every stats call.
+    """
+    records = read_queries(limit=_STATS_WINDOW)
     total = len(records)
     by_mode: Counter = Counter()
     result_sum = 0.0

@@ -26,6 +26,64 @@ def test_parse_classification_variants():
     assert whatsapp._parse_classification('{"keep": true, "topic": "null"}')["topic"] is None
 
 
+# ---------- classifier call (split system/data, HTTP mocked) ----------
+
+class _FakeResp:
+    def __init__(self, content):
+        self._content = content
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {"choices": [{"message": {"content": self._content}}]}
+
+
+def test_classify_returns_verdict_with_split_messages(monkeypatch):
+    monkeypatch.setattr(config, "DEEPINFRA_API_KEY", "k")
+    monkeypatch.setattr(config, "DEEPINFRA_URL", "https://deepinfra.test/v1/chat/completions")
+    monkeypatch.setattr(config, "WHATSAPP_CLASSIFIER_MODEL", "qwen")
+
+    captured = {}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured["json"] = json
+        return _FakeResp('{"keep": true, "topic": "OCS/charging"}')
+
+    monkeypatch.setattr(whatsapp.httpx, "post", fake_post)
+
+    verdict = whatsapp.classify([{"role": "user", "content": "MK201 charge 50MB"}])
+    assert verdict == {"keep": True, "topic": "OCS/charging"}
+
+    # Instruction is a system message; transcript is fenced data in a user message.
+    msgs = captured["json"]["messages"]
+    assert [m["role"] for m in msgs] == ["system", "user"]
+    assert "transcript" in msgs[0]["content"].lower()
+    assert msgs[1]["content"].startswith("<transcript>")
+    assert msgs[1]["content"].rstrip().endswith("</transcript>")
+    assert "MK201" in msgs[1]["content"]
+
+
+def test_classify_caps_transcript_length(monkeypatch):
+    monkeypatch.setattr(config, "DEEPINFRA_API_KEY", "k")
+    monkeypatch.setattr(config, "DEEPINFRA_URL", "https://deepinfra.test/v1/chat/completions")
+    monkeypatch.setattr(config, "WHATSAPP_CLASSIFIER_MODEL", "qwen")
+
+    captured = {}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured["json"] = json
+        return _FakeResp('{"keep": false, "topic": null}')
+
+    monkeypatch.setattr(whatsapp.httpx, "post", fake_post)
+
+    huge = [{"role": "user", "content": "x" * 50000}]
+    whatsapp.classify(huge)
+    # transcript is fenced in the user message; its length must be capped.
+    user_content = captured["json"]["messages"][1]["content"]
+    assert len(user_content) <= whatsapp._CLASSIFY_MAX_CHARS + len("<transcript>\n\n</transcript>")
+
+
 # ---------- pipeline gating ----------
 
 @pytest.fixture

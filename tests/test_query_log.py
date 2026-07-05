@@ -1,5 +1,7 @@
 """Tests for the append-only query log. Fully offline (stdlib only)."""
+import json
 import os
+import threading
 
 from wiki_agent import query_log
 
@@ -94,6 +96,40 @@ def test_stats_empty(monkeypatch, tmp_path):
     assert s["avg_result_count"] == 0.0
     assert s["top_queries"] == []
     assert s["zero_result_count"] == 0
+
+
+def test_concurrent_writes_do_not_interleave(monkeypatch, tmp_path):
+    # The module-level write lock must keep concurrent threadpool writers from
+    # interleaving partial lines — every line must remain valid JSON.
+    path = _use_temp_log(monkeypatch, tmp_path)
+    n_threads, per_thread = 8, 50
+
+    def worker(tid):
+        for i in range(per_thread):
+            query_log.log_query(f"t{tid}-{i}", i, mode="semantic")
+
+    threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    with open(path, encoding="utf-8") as fh:
+        lines = [ln for ln in fh if ln.strip()]
+    assert len(lines) == n_threads * per_thread
+    for ln in lines:
+        json.loads(ln)  # raises if a line was interleaved / truncated
+
+
+def test_stats_caps_to_recent_window(monkeypatch, tmp_path):
+    # stats() must not scan the whole file — only the most recent window.
+    _use_temp_log(monkeypatch, tmp_path)
+    monkeypatch.setattr(query_log, "_STATS_WINDOW", 3)
+    for i in range(10):
+        query_log.log_query(f"q{i}", 1, mode="semantic")
+
+    s = query_log.stats()
+    assert s["total"] == 3  # only the most-recent 3 events counted
 
 
 def test_log_query_never_raises_on_unwritable_path(monkeypatch, tmp_path):

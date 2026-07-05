@@ -48,7 +48,10 @@ def ensure_wiki_collection() -> None:
         headers=_headers(),
         timeout=30,
     )
-    r.raise_for_status()
+    # 409 = another worker won the create race; the collection now exists, so
+    # treat it as success. Any other error still raises.
+    if r.status_code != 409:
+        r.raise_for_status()
 
     # Payload index on `topic` so list_wiki_topics / topic filter stay fast.
     for field, schema in (("topic", "keyword"), ("source", "keyword")):

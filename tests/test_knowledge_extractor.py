@@ -6,6 +6,7 @@ import pytest
 
 from wiki_agent import knowledge_extractor as ke
 from wiki_agent import config
+from wiki_agent import embeddings
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures" / "conversations.json"
 
@@ -78,6 +79,18 @@ def test_point_id_is_stable_and_normalized():
 
 def test_point_id_differs_for_different_content():
     assert ke._point_id("fact one") != ke._point_id("fact two")
+
+
+def test_point_id_differs_for_same_content_different_topic():
+    # Identical content under distinct topics must NOT collide (no silent overwrite).
+    a = ke._point_id("same fact", "OCS/charging")
+    b = ke._point_id("same fact", "deploy/ci")
+    assert a != b
+
+
+def test_point_id_topic_default_back_compat():
+    # Single-arg call still works and equals the empty-topic form.
+    assert ke._point_id("x") == ke._point_id("x", "")
 
 
 # ---------- extract_facts across 10+ conversations (mocked LLM) ----------
@@ -156,3 +169,50 @@ def test_store_facts_calls_upsert_per_fact(monkeypatch):
 
 def test_store_facts_empty_returns_zero():
     assert ke.store_facts([]) == 0
+
+
+# ---------- embed_batch (order + chunking) ----------
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
+def test_embed_batch_reorders_by_index(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+
+    def fake_post(url, json, headers, timeout):
+        n = len(json["input"])
+        # Return the embeddings out of order; each carries its true index.
+        data = [{"index": i, "embedding": [float(i)]} for i in range(n)]
+        data.reverse()
+        return _FakeResp({"data": data})
+
+    monkeypatch.setattr(embeddings.httpx, "post", fake_post)
+    out = embeddings.embed_batch(["a", "b", "c"])
+    assert out == [[0.0], [1.0], [2.0]]  # aligned with inputs despite shuffle
+
+
+def test_embed_batch_chunks_over_512(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    calls = []
+
+    def fake_post(url, json, headers, timeout):
+        chunk = json["input"]
+        calls.append(len(chunk))
+        # Echo the input strings' numeric value as the embedding so we can verify order.
+        data = [{"index": i, "embedding": [float(t)]} for i, t in enumerate(chunk)]
+        return _FakeResp({"data": data})
+
+    monkeypatch.setattr(embeddings.httpx, "post", fake_post)
+    texts = [str(i) for i in range(1100)]
+    out = embeddings.embed_batch(texts)
+    assert calls == [512, 512, 76]  # chunked into ≤512 batches
+    assert len(out) == 1100
+    assert out[0] == [0.0] and out[-1] == [1099.0]  # concatenated in input order

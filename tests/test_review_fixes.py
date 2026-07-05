@@ -2,7 +2,7 @@
 import pytest
 
 from wiki_agent import reranker, rag, whatsapp, ratelimit, fact_crud, consolidation
-from wiki_agent import knowledge_extractor, config
+from wiki_agent import knowledge_extractor, config, mcp_server
 
 
 # ── reranker: partial Cohere response must not drop documents ──────────────
@@ -93,7 +93,8 @@ def test_update_fact_content_change_deletes_old(monkeypatch):
     deleted = []
     monkeypatch.setattr(fact_crud.qdrant_helper, "delete", lambda pid: deleted.append(pid))
     new_id = fact_crud.update_fact("old-id", content="brand new content")
-    assert new_id == knowledge_extractor._point_id("brand new content")
+    # id is derived from (topic, content); existing payload topic is "a/b".
+    assert new_id == knowledge_extractor._point_id("brand new content", "a/b")
     assert new_id != "old-id"
     assert deleted == ["old-id"]                       # stale point removed
 
@@ -115,3 +116,40 @@ def test_consolidation_skips_topicless_and_singletons(monkeypatch):
     # only the 2-member non-empty topic bucket is analyzed
     assert len(calls) == 1
     assert calls[0] == ["net/x", "net/x"]
+
+
+# ── config: malformed env vars fall back to defaults (no import-time crash) ──
+
+def test_config_env_int_falls_back_on_bad_value(monkeypatch):
+    monkeypatch.setenv("WIKI_BOGUS_INT", "not-a-number")
+    assert config._env_int("WIKI_BOGUS_INT", 42) == 42
+    monkeypatch.setenv("WIKI_BOGUS_INT", "7")
+    assert config._env_int("WIKI_BOGUS_INT", 42) == 7
+
+
+def test_config_env_float_falls_back_on_bad_value(monkeypatch):
+    monkeypatch.setenv("WIKI_BOGUS_FLOAT", "xyz")
+    assert config._env_float("WIKI_BOGUS_FLOAT", 1.5) == 1.5
+    monkeypatch.setenv("WIKI_BOGUS_FLOAT", "2.5")
+    assert config._env_float("WIKI_BOGUS_FLOAT", 1.5) == 2.5
+
+
+# ── mcp_server: rate limit gates requests once over the limit ───────────────
+
+def test_mcp_rate_limit_returns_error(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setattr(mcp_server.config, "MCP_BEARER_TOKEN", "secret")
+    monkeypatch.setattr(mcp_server.config, "RATE_LIMIT", 2)
+    monkeypatch.setattr(mcp_server.config, "RATE_WINDOW", 60)
+    ratelimit.reset("mcp")
+
+    client = TestClient(mcp_server.app)
+    headers = {"Authorization": "Bearer secret"}
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+
+    assert "error" not in client.post("/mcp", json=body, headers=headers).json()
+    assert "error" not in client.post("/mcp", json=body, headers=headers).json()
+    over = client.post("/mcp", json=body, headers=headers).json()
+    assert over["error"]["code"] == -32000
+    assert "rate limit" in over["error"]["message"]

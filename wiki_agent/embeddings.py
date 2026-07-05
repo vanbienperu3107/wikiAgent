@@ -11,6 +11,9 @@ from . import config
 
 OPENAI_URL = "https://api.openai.com/v1/embeddings"
 
+# OpenAI caps the number of inputs per embeddings request.
+_MAX_BATCH = 512
+
 
 def _headers() -> dict:
     if not config.OPENAI_API_KEY:
@@ -30,8 +33,19 @@ def embed(text: str) -> List[float]:
 
 
 def embed_batch(texts: List[str]) -> List[List[float]]:
-    """Embed multiple texts in one API call (cheaper than N calls)."""
-    payload = {"input": texts, "model": config.EMBED_MODEL}
-    r = httpx.post(OPENAI_URL, json=payload, headers=_headers(), timeout=60)
-    r.raise_for_status()
-    return [d["embedding"] for d in r.json()["data"]]
+    """Embed multiple texts (cheaper than N calls).
+
+    Inputs are chunked into batches of at most ``_MAX_BATCH`` (OpenAI caps the
+    request size). Within each response, items are reordered by their reported
+    ``index`` so vectors always align with their input positions, and chunk
+    results are concatenated in input order.
+    """
+    out: List[List[float]] = []
+    for start in range(0, len(texts), _MAX_BATCH):
+        chunk = texts[start:start + _MAX_BATCH]
+        payload = {"input": chunk, "model": config.EMBED_MODEL}
+        r = httpx.post(OPENAI_URL, json=payload, headers=_headers(), timeout=60)
+        r.raise_for_status()
+        data = sorted(r.json()["data"], key=lambda d: d["index"])
+        out.extend(d["embedding"] for d in data)
+    return out

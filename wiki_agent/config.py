@@ -6,6 +6,24 @@ instance and OpenAI/Anthropic keys already provisioned for agentMem0.
 from __future__ import annotations
 import os
 
+
+def _env_int(name: str, default: int) -> int:
+    """Read an int env var, falling back to `default` on missing/malformed value
+    so a bad env var can't crash the service at import time."""
+    try:
+        return int(os.environ.get(name, str(default)))
+    except (ValueError, TypeError):
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    """Read a float env var, falling back to `default` on missing/malformed value."""
+    try:
+        return float(os.environ.get(name, str(default)))
+    except (ValueError, TypeError):
+        return default
+
+
 # ----- Qdrant (reused instance) -----
 QDRANT_URL = os.environ.get("QDRANT_INTERNAL_URL", "http://qdrant:6333")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY")
@@ -16,7 +34,7 @@ WIKI_COLLECTION = os.environ.get("WIKI_COLLECTION", "wiki_knowledge")
 # ----- Embeddings (OpenAI) -----
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 EMBED_MODEL = os.environ.get("WIKI_EMBED_MODEL", "text-embedding-3-small")
-EMBED_DIMS = int(os.environ.get("WIKI_EMBED_DIMS", "1536"))
+EMBED_DIMS = _env_int("WIKI_EMBED_DIMS", 1536)
 
 # ----- Extractor LLM (Claude Haiku, OpenAI fallback) -----
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
@@ -40,11 +58,11 @@ SKIP_KEYWORDS = [
 ]
 
 # Minimum extractor confidence to persist a fact (drops low-value noise).
-MIN_CONFIDENCE = float(os.environ.get("WIKI_MIN_CONFIDENCE", "0.5"))
+MIN_CONFIDENCE = _env_float("WIKI_MIN_CONFIDENCE", 0.5)
 
 # REST rate limit: max requests per window per token (0 = disabled).
-RATE_LIMIT = int(os.environ.get("WIKI_RATE_LIMIT", "120"))
-RATE_WINDOW = float(os.environ.get("WIKI_RATE_WINDOW", "60"))
+RATE_LIMIT = _env_int("WIKI_RATE_LIMIT", 120)
+RATE_WINDOW = _env_float("WIKI_RATE_WINDOW", 60)
 
 # ----- WhatsApp source (Phase 3) -----
 # Cheap classifier that decides keep=true/false before the expensive Haiku

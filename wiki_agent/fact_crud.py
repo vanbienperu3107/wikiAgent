@@ -54,6 +54,10 @@ def add_fact(
         raise ValueError("topic must not be empty")
     if not content:
         raise ValueError("content must not be empty")
+    # Privacy filter must apply here too: MCP's add_wiki_fact calls add_fact
+    # directly, bypassing the REST-layer check.
+    if knowledge_extractor.is_sensitive(content):
+        raise ValueError("content flagged by privacy filter")
 
     qdrant_helper.ensure_wiki_collection()
     vector = embeddings.embed(content)
@@ -64,7 +68,7 @@ def add_fact(
         "confidence": confidence,
     }
     payload = knowledge_extractor.build_payload(fact, source, ref)
-    point_id = knowledge_extractor._point_id(content)
+    point_id = knowledge_extractor._point_id(content, topic)
     qdrant_helper.upsert(point_id, vector, payload)
     return point_id
 

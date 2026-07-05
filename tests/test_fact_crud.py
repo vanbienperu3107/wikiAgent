@@ -31,7 +31,17 @@ def offline(monkeypatch):
 def test_add_fact_returns_deterministic_id(offline):
     pid1 = fact_crud.add_fact("OCS/charging", "MK201 = 50MB")
     pid2 = fact_crud.add_fact("OCS/charging", "  mk201 = 50mb  ")
-    assert pid1 == pid2 == ke._point_id("MK201 = 50MB")
+    # id is now derived from (topic, content), so the topic must be passed too.
+    assert pid1 == pid2 == ke._point_id("MK201 = 50MB", "OCS/charging")
+
+
+def test_add_fact_rejects_sensitive_content(offline):
+    # MCP's add_wiki_fact calls add_fact directly, so the privacy filter must
+    # live in add_fact itself (not only the REST layer). "password" is a
+    # default SKIP_KEYWORD.
+    with pytest.raises(ValueError):
+        fact_crud.add_fact("a/b", "the password is hunter2")
+    assert offline["upserts"] == []
 
 
 def test_add_fact_calls_ensure_collection(offline):

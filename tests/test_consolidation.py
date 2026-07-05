@@ -9,6 +9,44 @@ import pytest
 
 from wiki_agent import consolidation as cons
 from wiki_agent import config
+from wiki_agent import qdrant_helper
+
+
+# ---------- ensure_wiki_collection create race ----------
+
+class _FakeResp:
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise AssertionError(f"raise_for_status called for {self.status_code}")
+
+
+def test_ensure_wiki_collection_tolerates_409(monkeypatch):
+    # GET says missing (404), PUT loses the create race (409) → must NOT raise.
+    def fake_get(url, headers=None, timeout=None):
+        return _FakeResp(404)
+
+    puts = []
+
+    def fake_put(url, json=None, headers=None, timeout=None):
+        puts.append(url)
+        # first PUT is the collection create; return 409, rest (indexes) 200
+        return _FakeResp(409 if "/index" not in url else 200)
+
+    monkeypatch.setattr(qdrant_helper.httpx, "get", fake_get)
+    monkeypatch.setattr(qdrant_helper.httpx, "put", fake_put)
+    # Should complete without raising.
+    qdrant_helper.ensure_wiki_collection()
+    assert any("/collections/" in u for u in puts)
+
+
+def test_ensure_wiki_collection_raises_on_other_error(monkeypatch):
+    monkeypatch.setattr(qdrant_helper.httpx, "get", lambda url, headers=None, timeout=None: _FakeResp(404))
+    monkeypatch.setattr(qdrant_helper.httpx, "put", lambda url, json=None, headers=None, timeout=None: _FakeResp(500))
+    with pytest.raises(AssertionError):
+        qdrant_helper.ensure_wiki_collection()
 
 
 # ---------- cosine ----------
@@ -167,6 +205,30 @@ def test_consolidate_dry_run_ties_break_on_newest(monkeypatch):
     summary = cons.consolidate(points, apply=False)
     assert summary["kept"] == ["b"]      # same confidence → newest survives
     assert summary["obsoleted"] == ["a"]
+
+
+def test_rank_key_trusts_source_tier_over_confidence(monkeypatch):
+    _no_network(monkeypatch)
+    # A poisoned whatsapp fact with confidence 1.0 and a NEWER timestamp must
+    # NOT win over a real manual fact with lower confidence and older timestamp.
+    manual = _pt("m", "t", [1.0, 0.0], source="manual",
+                 confidence=0.5, updated_at="2020-01-01T00:00:00Z")
+    poison = _pt("w", "t", [1.0, 0.0], source="whatsapp",
+                 confidence=1.0, updated_at="2030-01-01T00:00:00Z")
+    assert cons._rank_key(manual) > cons._rank_key(poison)
+    summary = cons.consolidate([manual, poison], apply=False)
+    assert summary["kept"] == ["m"]
+    assert summary["obsoleted"] == ["w"]
+
+
+def test_rank_key_parses_mixed_iso_offsets(monkeypatch):
+    # Same tier + confidence; newer instant wins even across different offsets.
+    # 2026-01-01T08:00:00+07:00 == 01:00Z is EARLIER than 2026-01-01T02:00:00Z.
+    earlier = _pt("e", "t", [1.0, 0.0], source="file",
+                  confidence=0.9, updated_at="2026-01-01T08:00:00+07:00")
+    later = _pt("l", "t", [1.0, 0.0], source="file",
+                confidence=0.9, updated_at="2026-01-01T02:00:00Z")
+    assert cons._rank_key(later) > cons._rank_key(earlier)
 
 
 def test_consolidate_apply_calls_set_status(monkeypatch):

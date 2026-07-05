@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.3.2 — deep-review hardening
+
+Fixes from a 6-agent deep adversarial review (correctness, security,
+prompt-injection, concurrency/scale, dashboard, Node client). See
+`docs/SECURITY.md` for accepted/architectural limitations.
+
+Correctness (HIGH):
+- **BM25 now tokenizes Vietnamese** (`\w+`/NFC) — keyword search was ASCII-only
+  and silently dead for the primary language.
+- **Point ids include topic** — facts with identical content but different
+  topics no longer silently overwrite each other. `embed_batch` reorders by
+  `index` and chunks ≤512 (prevents silent vector/fact misalignment).
+
+Security:
+- **MCP `add_wiki_fact` now runs the privacy filter** (was a bypass); **MCP
+  server is rate-limited** (delete/add/search); constant-time token compare on
+  both servers; request-body size caps; MCP no longer leaks internal errors;
+  safe env parsing (bad env no longer crashes at import).
+
+Prompt-injection:
+- Extractor & classifier put instructions in a **system** role and fence
+  untrusted text in `<transcript>` data blocks; forged role-lines neutralized.
+- **Consolidation ranks survivors by source-trust tier** (manual > conversation
+  > file > whatsapp), not self-asserted `confidence` — a poisoned low-trust
+  fact can't obsolete a real one.
+
+Concurrency / client:
+- `query_log` guarded by a lock; `stats()` bounded (no whole-file load).
+- `ensure_wiki_collection` tolerates a create race (409).
+- **Baileys client**: retries on POST failure (no more silent batch loss),
+  reconnect backoff, crash-flush handlers, phone-number masking in logs,
+  Channels/broadcast filtering, shutdown timeout.
+
 ## 0.3.1 — review fixes
 
 Fixes from an adversarial code review (all with regression tests):

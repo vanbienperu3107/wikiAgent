@@ -36,6 +36,18 @@ def _patch_search(monkeypatch, hits, capture=None):
     monkeypatch.setattr(rag.qdrant_helper, "search", fake_search)
 
 
+# ---------- tokenizer (Unicode / Vietnamese) ----------
+
+def test_tokenize_keeps_vietnamese_words():
+    # Accented chars must survive as whole words, not be dropped or fragmented.
+    assert rag._tokenize("Cấu hình để") == ["cấu", "hình", "để"]
+
+
+def test_tokenize_blank_and_none():
+    assert rag._tokenize("") == []
+    assert rag._tokenize(None) == []
+
+
 # ---------- BM25 keyword boost ----------
 
 def test_bm25_boost_reorders_vs_pure_vector(monkeypatch):
