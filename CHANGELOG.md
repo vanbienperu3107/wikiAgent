@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.4 — fix prompt-injection fence breakout (security review)
+
+- **HIGH: the `<transcript>` anti-injection fence was trivially breakable.** A
+  message body containing a literal `</transcript>` closed the fence early and
+  the rest was read as instructions (knowledge poisoning / classifier gate-flip).
+  Message bodies are now neutralized (`_neutralize`) — any embedded transcript
+  tag is defused and newlines collapsed — before fencing, in both the extractor
+  and the classifier. + regression tests.
+- (Verified false positive: MCP `add_wiki_fact` already runs the privacy filter
+  via `fact_crud.add_fact`.)
+
 ## 0.3.3 — least-privilege + injection blast-radius
 
 - **`WIKI_ADMIN_TOKEN`** — optional separate token for destructive REST `DELETE`

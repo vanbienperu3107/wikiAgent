@@ -109,13 +109,25 @@ def privacy_filter(messages: Iterable[dict]) -> List[dict]:
     return [m for m in messages if not is_sensitive(_message_text(m))]
 
 
+# Callers fence the transcript in <transcript>…</transcript> as untrusted data.
+# A message body containing a literal `</transcript>` would close the fence early
+# and let the rest be read as instructions (prompt-injection breakout), so any
+# transcript tag inside a body is neutralized before rendering.
+_FENCE_TAG_RE = re.compile(r"<\s*/?\s*transcript\s*>", re.IGNORECASE)
+
+
+def _neutralize(text: str) -> str:
+    # Collapse newlines (can't forge a `\n[system]:` turn boundary) and defuse
+    # any embedded fence tag (can't close the <transcript> fence).
+    text = re.sub(r"\s*[\r\n]+\s*", " ", text)
+    return _FENCE_TAG_RE.sub("[transcript]", text)
+
+
 def _format_transcript(messages: Iterable[dict]) -> str:
     lines = []
     for m in messages:
         role = m.get("role", "?")
-        # Collapse newlines inside a message body so its text cannot forge a
-        # fake `\n[system]:` turn boundary in the rendered transcript.
-        body = re.sub(r"\s*[\r\n]+\s*", " ", _message_text(m))
+        body = _neutralize(_message_text(m))
         lines.append(f"[{role}]: {body}")
     text = "\n\n".join(lines)
     if len(text) > MAX_TRANSCRIPT_CHARS:

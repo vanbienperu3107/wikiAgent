@@ -32,7 +32,7 @@ from . import (
 app = FastAPI(
     title="wikiAgent — Wiki Knowledge Layer",
     description="Multi-source structured knowledge for the Personal AI Knowledge System.",
-    version="0.3.3",
+    version="0.3.4",
 )
 
 # CORS so the static dashboard (and other browser clients) can call this API.
