@@ -24,6 +24,12 @@ def check_rate(key: str, limit: int, window_s: float) -> bool:
         dq = _hits[key]
         while dq and dq[0] < cutoff:
             dq.popleft()
+        if not dq:
+            # Window fully expired — evict then re-create so idle keys don't
+            # accumulate empty deques forever (matters if keyed per-client).
+            _hits.pop(key, None)
+            _hits[key].append(now)
+            return True
         if len(dq) >= limit:
             return False
         dq.append(now)

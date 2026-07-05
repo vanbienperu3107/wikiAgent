@@ -247,10 +247,11 @@ def consolidate(
     """Reconcile near-duplicate facts; optionally flag contradictions.
 
     For each duplicate group the highest-confidence (tie: newest) point is kept
-    active and the rest are planned for ``status="obsolete"``. When ``apply`` is
-    False (the default) the planned changes are returned WITHOUT any network
-    call — a dry run. When ``apply`` is True, ``set_status`` is invoked for each
-    obsoletion (and each surviving point is confirmed active).
+    active and the rest are planned for ``status="obsolete"``. ``apply`` gates
+    only the *writes*: when False (the default) no ``set_status`` calls are made
+    (a dry run for the dedup plan). NOTE: ``contradiction_check=True`` still
+    issues (billed, read-only) LLM calls regardless of ``apply`` — it is opt-in
+    analysis, not a write.
 
     Returns a summary dict::
 
@@ -295,17 +296,25 @@ def consolidate(
             by_topic.setdefault(topic, []).append(p)
         for topic in by_topic:
             group = by_topic[topic]
+            # Skip topicless buckets — unrelated facts all land in "" and must
+            # not be compared as if they share a subject — and singletons.
+            if not topic.strip() or len(group) < 2:
+                continue
             facts = [
                 {"topic": topic, "content": (p.get("payload") or {}).get("content", "")}
                 for p in group
             ]
             for pair in detect_contradictions(facts):
+                a, b = pair.get("a"), pair.get("b")
+                if not (isinstance(a, int) and isinstance(b, int)
+                        and 0 <= a < len(group) and 0 <= b < len(group)):
+                    continue  # ignore out-of-range indices from the model
                 contradictions.append(
                     {
                         "topic": topic,
-                        "a": group[pair["a"]]["id"],
-                        "b": group[pair["b"]]["id"],
-                        "reason": pair["reason"],
+                        "a": group[a]["id"],
+                        "b": group[b]["id"],
+                        "reason": pair.get("reason"),
                     }
                 )
         summary["contradictions"] = contradictions

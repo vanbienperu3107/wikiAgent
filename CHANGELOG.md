@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1 — review fixes
+
+Fixes from an adversarial code review (all with regression tests):
+
+- **whatsapp** — classifier cost-gate no longer fails open: a stringified
+  `{"keep":"false"}` (Python `bool("false")` is True!) is now coerced correctly.
+  Topic rebias only overwrites generic placeholders, never a specific flat topic.
+- **reranker** — a partial Cohere response no longer silently drops documents
+  the caller didn't ask to truncate (omitted docs appended in original order).
+- **rag** — `_recency` now catches `TypeError` too, so a non-string `updated_at`
+  degrades to 0.0 instead of crashing `hybrid_search(beta>0)`.
+- **consolidation** — contradiction check skips topicless/singleton buckets
+  (no more comparing unrelated topicless facts) + out-of-range model indices
+  ignored; dry-run docstring corrected re: LLM calls.
+- **ratelimit** — idle keys evicted (no unbounded empty-deque growth).
+- **mcp_server** — `204` responses no longer carry a `null` body.
+- **fact_crud** — added the previously-missing `update_fact` tests (both branches).
+
 ## 0.3.0 — hardening, RAG data-loop, automation, dashboard
 
 - **REST hardening**: in-memory sliding-window rate limiter (`ratelimit.py`,

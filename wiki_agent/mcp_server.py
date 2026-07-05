@@ -12,7 +12,7 @@ Auth: clients must send `Authorization: Bearer <WIKI_MCP_BEARER_TOKEN>`.
 from __future__ import annotations
 import json
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -154,7 +154,7 @@ async def mcp_endpoint(request: Request):
         }
 
     if method == "notifications/initialized":
-        return JSONResponse(status_code=204, content=None)
+        return Response(status_code=204)
 
     if method == "tools/list":
         return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": TOOLS}}

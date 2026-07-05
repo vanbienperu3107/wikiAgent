@@ -24,6 +24,10 @@ from . import config, knowledge_extractor
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
+# Placeholder topics the extractor emits when it can't infer a real one — only
+# these get rebiased to the classifier's topic.
+_GENERIC_TOPICS = {"", "misc", "general", "other", "unknown", "chat", "whatsapp", "n/a"}
+
 CLASSIFY_PROMPT = """Bạn phân loại một đoạn hội thoại WhatsApp có đáng lưu vào wiki kỹ thuật không.
 
 Trả về DUY NHẤT một object JSON, không giải thích:
@@ -59,6 +63,19 @@ def _prefilter(messages: Iterable[dict]) -> List[dict]:
 # 2. Classifier (cheap LLM gate)
 # ============================================================
 
+def _coerce_keep(v) -> bool:
+    """Coerce the model's `keep` to a bool. Fail CLOSED (keep=false) on doubt —
+    note `bool("false")` is True in Python, so a stringified 'false' must be
+    handled explicitly or the cheap cost-gate leaks open."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return bool(v)
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "yes", "keep", "y")
+    return False
+
+
 def _parse_classification(raw: str) -> dict:
     """Parse the {keep, topic} JSON object; default to keep=false on any doubt."""
     match = re.search(r"\{.*\}", raw, re.DOTALL)
@@ -68,7 +85,7 @@ def _parse_classification(raw: str) -> dict:
         data = json.loads(match.group(0))
     except json.JSONDecodeError:
         return {"keep": False, "topic": None}
-    keep = bool(data.get("keep", False))
+    keep = _coerce_keep(data.get("keep", False))
     topic = data.get("topic")
     if not isinstance(topic, str) or not topic.strip() or topic.strip().lower() == "null":
         topic = None
@@ -135,10 +152,12 @@ def process_thread(
         return {"blacklisted": False, "kept": False, "stored": 0, "topic": verdict["topic"]}
 
     facts = knowledge_extractor.extract_facts(safe, backend=backend)
-    # Bias facts toward the classifier's topic when the extractor left it generic.
+    # Bias facts toward the classifier's topic ONLY when the extractor left a
+    # generic placeholder — never overwrite a specific topic just because it
+    # happens to be flat (e.g. "kubernetes" must not become "OCS/charging").
     if verdict["topic"]:
         for f in facts:
-            if "/" not in f["topic"]:
+            if f["topic"].strip().lower() in _GENERIC_TOPICS:
                 f["topic"] = verdict["topic"]
     stored = knowledge_extractor.store_facts(facts, source="whatsapp", ref=thread_id)
     return {

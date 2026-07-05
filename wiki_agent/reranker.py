@@ -72,10 +72,12 @@ def rerank(
         return results[:top_n] if top_n is not None else results
 
     reordered: List[dict] = []
+    seen: set = set()
     for item in ranked:
         idx = item.get("index")
-        if idx is None or not (0 <= idx < len(results)):
+        if idx is None or not (0 <= idx < len(results)) or idx in seen:
             continue
+        seen.add(idx)
         hit = dict(results[idx])
         hit["rerank_score"] = item.get("relevance_score")
         reordered.append(hit)
@@ -84,5 +86,12 @@ def rerank(
     # fall back rather than silently dropping every result.
     if not reordered:
         return results[:top_n] if top_n is not None else results
+
+    # Cohere may echo back fewer documents than we sent. Append any it omitted,
+    # in original order, so we never silently lose candidates the caller expects
+    # (with top_n set they get sliced off; with top_n=None nothing is dropped).
+    for i, r in enumerate(results):
+        if i not in seen:
+            reordered.append(dict(r))
 
     return reordered[:top_n] if top_n is not None else reordered

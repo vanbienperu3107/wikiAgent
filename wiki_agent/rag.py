@@ -86,7 +86,7 @@ def _recency(updated_at: Optional[str], halflife_days: float) -> float:
         return 0.0
     try:
         dt = datetime.fromisoformat(updated_at)
-    except ValueError:
+    except (ValueError, TypeError):
         return 0.0
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
