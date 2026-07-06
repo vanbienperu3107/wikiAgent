@@ -3,18 +3,11 @@ name: CI
 on:
   push:
     branches: ["**"]
-    paths:
-      - "wikiAgent/**"
-  pull_request:
-    paths:
-      - "wikiAgent/**"
+  pull_request: {}
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wikiAgent
     steps:
       - uses: actions/checkout@v4
 
