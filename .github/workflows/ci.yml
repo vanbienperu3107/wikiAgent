@@ -23,3 +23,36 @@ jobs:
 
       - name: Import smoke check
         run: python -c "import wiki_agent.app, wiki_agent.mcp_server, wiki_agent.knowledge_extractor"
+
+  api-mcp-e2e:
+    # Real REST + MCP HTTP round-trip against a real Qdrant (only the OpenAI
+    # embedding call is stubbed — see tests/integration/conftest.py).
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.12.1
+        ports:
+          - 6333:6333
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+
+      - name: Wait for Qdrant
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:6333/collections && exit 0
+            sleep 1
+          done
+          echo "Qdrant never came up" >&2
+          exit 1
+
+      - name: Run API/MCP integration tests
+        env:
+          WIKI_TEST_QDRANT_URL: http://localhost:6333
+        run: pytest tests/integration -q
