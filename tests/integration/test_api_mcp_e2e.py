@@ -14,7 +14,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from wiki_agent import app as appmod, mcp_server, config, ratelimit
+from wiki_agent import app as appmod, mcp_server, config, fact_crud, ratelimit
 
 AUTH_TOKEN = "e2e-rest-token"
 MCP_TOKEN = "e2e-mcp-token"
@@ -103,6 +103,8 @@ def test_mcp_initialize_and_tools_list(monkeypatch):
 
 
 def test_mcp_add_and_search_round_trip(monkeypatch):
+    # This collection is shared (session-scoped) with test_e2e.py, which
+    # asserts an exact topic set — clean up so this test leaves no trace.
     _auth_config(monkeypatch)
     c = TestClient(mcp_server.app)
 
@@ -112,16 +114,20 @@ def test_mcp_add_and_search_round_trip(monkeypatch):
     })
     assert r.status_code == 200
     assert r.json()["result"]["isError"] is False
+    fact_id = json.loads(r.json()["result"]["content"][0]["text"])["id"]
 
-    r = _mcp_call(c, "tools/call", {
-        "name": "search_wiki",
-        "arguments": {"query": "redis eviction policy prod", "hybrid": True},
-    })
-    result = r.json()["result"]
-    assert result["isError"] is False
-    body = json.loads(result["content"][0]["text"])
-    assert "note" in body and "results" in body  # provenance envelope present
-    assert any(x["topic"] == "e2e/mcp-roundtrip" for x in body["results"])
+    try:
+        r = _mcp_call(c, "tools/call", {
+            "name": "search_wiki",
+            "arguments": {"query": "redis eviction policy prod", "hybrid": True},
+        })
+        result = r.json()["result"]
+        assert result["isError"] is False
+        body = json.loads(result["content"][0]["text"])
+        assert "note" in body and "results" in body  # provenance envelope present
+        assert any(x["topic"] == "e2e/mcp-roundtrip" for x in body["results"])
+    finally:
+        fact_crud.delete_fact(fact_id)
 
 
 def test_mcp_requires_auth(monkeypatch):

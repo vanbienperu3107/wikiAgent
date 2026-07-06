@@ -95,9 +95,9 @@ def _seed():
     )
 
     return {
-        "ocs": knowledge_extractor._point_id(conv_facts[0]["content"]),
-        "ci": knowledge_extractor._point_id(conv_facts[1]["content"]),
-        "dns": knowledge_extractor._point_id(conv_facts[2]["content"]),
+        "ocs": knowledge_extractor._point_id(conv_facts[0]["content"], conv_facts[0]["topic"]),
+        "ci": knowledge_extractor._point_id(conv_facts[1]["content"], conv_facts[1]["topic"]),
+        "dns": knowledge_extractor._point_id(conv_facts[2]["content"], conv_facts[2]["topic"]),
         "billing": billing_id,
         "dup_a": dup_id_a,
         "dup_b": dup_id_b,
